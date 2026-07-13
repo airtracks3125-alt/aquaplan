@@ -80,16 +80,18 @@
   </style>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col">
- <!-- 簡易セキュリティロック画面 -->
- <div id="app-lock-screen" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(30, 41, 59, 0.98); z-index: 99999; display: flex; flex-direction: column; justify-content: center; align-items: center; color: white; font-family: sans-serif;">
+
+  <!-- 簡易セキュリティロック画面 -->
+  <div id="app-lock-screen" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(30, 41, 59, 0.98); z-index: 99999; display: flex; flex-direction: column; justify-content: center; align-items: center; color: white; font-family: sans-serif;">
     <div style="background: #1e293b; padding: 30px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); text-align: center; max-width: 400px; width: 90%; border: 1px solid #334155;">
-        <h2 style="margin-top: 0; color: #38bdf8; font-size: 24px; margin-bottom: 10px;">🌊 AquaPlan PRO</h2>
-        <p style="color: #94a3b8; font-size: 14px; margin-bottom: 25px;">これより先はチーム関係者専用エリアです。<br>配布された合言葉を入力してください。</p>
-        <input type="password" id="secret-code-input" placeholder="合言葉を入力" style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #475569; background: #0f172a; color: white; font-size: 16px; text-align: center; box-sizing: border-box; margin-bottom: 15px;">
-        <button onclick="checkSecretCode()" style="width: 100%; padding: 12px; border-radius: 6px; border: none; background: #0284c7; color: white; font-size: 16px; font-weight: bold; cursor: pointer; transition: background 0.2s;">認証する</button>
-        <p id="lock-error-msg" style="color: #ef4444; font-size: 13px; margin-top: 10px; display: none;">⚠️ 合言葉が正しくありません</p>
+      <h2 style="margin-top: 0; color: #38bdf8; font-size: 24px; margin-bottom: 10px;">🌊 AquaPlan PRO</h2>
+      <p style="color: #94a3b8; font-size: 14px; margin-bottom: 25px;">これより先はチーム関係者専用エリアです。<br>配布された合言葉を入力してください。</p>
+      <input type="password" id="secret-code-input" placeholder="合言葉を入力" style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #475569; background: #0f172a; color: white; font-size: 16px; text-align: center; box-sizing: border-box; margin-bottom: 15px;">
+      <button onclick="checkSecretCode()" style="width: 100%; padding: 12px; border-radius: 6px; border: none; background: #0284c7; color: white; font-size: 16px; font-weight: bold; cursor: pointer; transition: background 0.2s;">認証する</button>
+      <p id="lock-error-msg" style="color: #ef4444; font-size: 13px; margin-top: 10px; display: none;">⚠️ 合言葉が正しくありません</p>
     </div>
-</div>
+  </div>
+
   <!-- ヘッダー -->
   <header class="bg-slate-950 border-b border-slate-800 text-white shadow-md no-print sticky top-0 z-40">
     <div class="max-w-7xl mx-auto px-4 py-3 flex flex-col sm:flex-row justify-between items-center gap-4">
@@ -474,38 +476,34 @@
   </div>
 
   <script>
-     // セキュリティコードの判定
-function checkSecretCode() {
-    const input = document.getElementById('secret-code-input').value;
-    const errorMsg = document.getElementById('lock-error-msg');
-    
-    // 💡 ここに好きな合言葉を設定してください
-    const correctAnswer = 'team-aqua2026'; 
+    // セキュリティコードの判定
+    function checkSecretCode() {
+      const input = document.getElementById('secret-code-input').value;
+      const errorMsg = document.getElementById('lock-error-msg');
+      const correctAnswer = ‘axtswim’; 
 
-    if (input === correctAnswer) {
-        // 正解ならロック画面を消す
+      if (input === correctAnswer) {
         document.getElementById('app-lock-screen').style.display = 'none';
-    } else {
-        // 不正解ならエラーメッセージを表示
+      } else {
         errorMsg.style.display = 'block';
         document.getElementById('secret-code-input').value = '';
+      }
     }
-}
 
-// Enterキーでも認証できるようにする
-document.addEventListener('DOMContentLoaded', () => {
-    const inputField = document.getElementById('secret-code-input');
-    if (inputField) {
+    document.addEventListener('DOMContentLoaded', () => {
+      const inputField = document.getElementById('secret-code-input');
+      if (inputField) {
         inputField.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                checkSecretCode();
-            }
+          if (e.key === 'Enter') {
+            checkSecretCode();
+          }
         });
-    }
-});
+      }
+    });
+
     let generatedActiveGroups = [];
     
-    // 技術課題ドリル・スタート・ターン
+    // 技術課題ドリル・スタート・ターン (Dive/Turn統合)
     const drillPool = [
       { name: "片手スイム (右/左交互)", desc: "ストロークのエントリー位置とキャッチ時の水の引っかかりを確認。" },
       { name: "フロント・スカーリング", desc: "インスウィップ・アウトスウィップで手の平のキャッチ感覚を研ぎ澄ます。" },
@@ -518,7 +516,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const stylePool = ["Choice", "Style 1", "Fr", "IM", "IM Order", "IM Switch"];
 
-    // 出力有効化（有効/無効）の視覚効果切り替え
+    // 出力有効化の視覚効果切り替え
     function toggleLaneActiveState(laneId) {
       const checkbox = document.getElementById(`${laneId}-active`);
       const card = document.getElementById(`card-${laneId}`);
@@ -534,7 +532,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return stylePool[Math.floor(Math.random() * stylePool.length)];
       }
       if (Math.random() < 0.25) {
-        return stylePool[Math.floor(Math.random() * 2)]; // 25%でChoiceかStyle 1を混ぜる
+        return stylePool[Math.floor(Math.random() * 2)]; 
       }
       return configuredStyle;
     }
@@ -557,22 +555,18 @@ document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('val-tech').innerText = `${document.getElementById('slide-tech').value}%`;
     }
 
-    // プリセットボタン変更：スプリント、ディスタンス、バランス
     function autoFillPreset(mode) {
       if (mode === 'speed') { 
-        // スプリント (Sprint)
         document.getElementById('slide-aerobic').value = 20; 
         document.getElementById('slide-speed').value = 50; 
         document.getElementById('slide-tech').value = 30; 
       }
       else if (mode === 'distance') { 
-        // ディスタンス (Distance)
         document.getElementById('slide-aerobic').value = 60; 
         document.getElementById('slide-speed').value = 20; 
         document.getElementById('slide-tech').value = 20; 
       }
       else { 
-        // バランス (Balance)
         document.getElementById('slide-aerobic').value = 40; 
         document.getElementById('slide-speed').value = 30; 
         document.getElementById('slide-tech').value = 30; 
@@ -586,7 +580,6 @@ document.addEventListener('DOMContentLoaded', () => {
       return (parseInt(p[0]) * 60) + (parseInt(p[1]) || 0);
     }
 
-    // サークルの表記文字列から秒数を安全に解析・抽出するヘルパー関数
     function parseCycleToSeconds(cycleStr) {
       if (!cycleStr) return 0;
       let clean = cycleStr.replace(/サークル|秒|分/g, '').trim();
@@ -596,7 +589,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const sec = parseInt(parts[1]) || 0;
         return (min * 60) + sec;
       }
-      // "45" などの直接指定
       return parseInt(clean) || 0;
     }
     
@@ -605,26 +597,22 @@ document.addEventListener('DOMContentLoaded', () => {
       return `${m}:${s < 10 ? '0' : ''}${s}`;
     }
 
-    // 各練習ステップ単体の推定所要時間を計算 (秒)
     function calculateStepTime(step, basePace) {
       let cycleSec = parseCycleToSeconds(step.cycle);
       if (cycleSec > 0) {
         return cycleSec * step.reps;
       } else {
-        // サークルタイムが設定されていない（Warm-upやDownなどの「各自」ペース）
-        // 100mあたり「持ちタイム目安の1.6倍（イージーペース）」としておおよその時間を算出
-        const estimatedPacePer100 = basePace > 0 ? basePace * 1.6 : 120; // 持ちタイムがない場合は100mあたり120秒で計算
+        const estimatedPacePer100 = basePace > 0 ? basePace * 1.6 : 120;
         return Math.max(60, ((step.dist * step.reps) / 100) * estimatedPacePer100);
       }
     }
 
-    // メニュー全体の推定合計所要時間を計算 (分単位で切り上げ)
     function calculateMenuTotalTime(menu) {
       let totalSeconds = 0;
       menu.steps.forEach(step => {
         totalSeconds += calculateStepTime(step, menu.basePace);
       });
-      return Math.ceil(totalSeconds / 60); // 切り上げて分単位に変換
+      return Math.ceil(totalSeconds / 60);
     }
 
     function generateMultiMenu() {
@@ -641,7 +629,6 @@ document.addEventListener('DOMContentLoaded', () => {
       const filtered = config.filter(c => c.act);
       if(filtered.length === 0) { alertCustom("出力が有効化されたレーンがありません。チェックを入れてください。"); return; }
 
-      // 既存リストを一括クリアして新規作成
       generatedActiveGroups = [];
       filtered.forEach(cfg => {
         generatedActiveGroups.push(buildOptimizedMenu(cfg, rA, rS, rT, false));
@@ -657,7 +644,6 @@ document.addEventListener('DOMContentLoaded', () => {
       const pace = parseTimeToSeconds(document.getElementById(`${laneId}-pace`).value);
       let col = 'blue'; if(laneId==='gB') col='cyan'; if(laneId==='gC') col='emerald';
 
-      // 完全ランダム時の視覚フィードバック
       const btn = document.querySelector(`button[onclick="generateRandomMenu('${laneId}')"]`);
       const originalText = btn.innerHTML;
       btn.innerHTML = `<span class="animate-spin mr-1">🌀</span>生成中...`;
@@ -687,7 +673,6 @@ document.addEventListener('DOMContentLoaded', () => {
       }, 300);
     }
 
-    // 安定版：プールサイズ、ロングレップ、SKPS、BUを考慮した最適化メニュービルダ
     function buildOptimizedMenu(cfg, rA, rS, rT, isAbsoluteRandom) {
       const targetDist = cfg.dist;
       const pool = parseInt(document.getElementById('pool-length').value) || 25;
@@ -722,7 +707,6 @@ document.addEventListener('DOMContentLoaded', () => {
         wu_style = "Easy Choice";
       }
 
-      // 長水路(50m)プールのとき、25m単位が発生しないよう安全フィルター
       if (pool === 50) {
         if (wu_dist === 25) wu_dist = 50;
       }
@@ -747,8 +731,12 @@ document.addEventListener('DOMContentLoaded', () => {
       if (targetDist >= 6000) kickDist = 100;
       if (pool === 50 && kickDist < 50) kickDist = 50;
 
+      // 短水路でのみ、時々25mキックを採用
+      if (pool === 25 && targetDist < 6000 && Math.random() < 0.35) {
+        kickDist = 25;
+      }
+
       let kickReps = Math.max(2, Math.round((remaining * 0.15) / kickDist));
-      // 長水路かつ奇数本数での整合
       if (kickReps % 2 !== 0 && targetDist >= 3000) kickReps += 1;
 
       let k_cyc = Math.round((base * (kickDist / 100) * 1.8) / 5) * 5;
@@ -761,9 +749,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
       steps.push({ phase: 'Kick', style: getRandomStyle(cfg.style) + ' ' + selectedKickPattern, dist: kickDist, reps: kickReps, total: kickDist*kickReps, desc: 'コアからのダイナミックな推進。ラストに向かってビルドアップ。', cycle: `${formatSeconds(k_cyc)}`, intensity: 'A2' });
 
-      // 2. 技術ドリル・スタート・ターン (Dive/Turn 統合)
+      // 2. 技術ドリル・スタート・ターン
       if (techTarget > 0) {
         let dDist = 50;
+        if (pool === 25 && Math.random() < 0.3) {
+          dDist = 25;
+        }
         let dReps = Math.max(2, Math.round(techTarget / dDist));
         let drill = drillPool[Math.floor(Math.random() * drillPool.length)];
         let d_cyc = Math.round((base * (dDist / 100) * 1.35) / 5) * 5;
@@ -784,7 +775,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       if (pool === 50 && mainAeroDist < 50) mainAeroDist = 50;
 
-      let aeroReps = Math.max(2, Math.round(aeroTarget / mainAeroDist));
+      let dReps = Math.max(2, Math.round(aeroTarget / mainAeroDist));
       let aeroCycRatio = 1.15;
       if (mainAeroDist >= 400) aeroCycRatio = 1.12; 
       let a_cyc = Math.round((base * (mainAeroDist / 100) * aeroCycRatio) / 5) * 5;
@@ -797,13 +788,16 @@ document.addEventListener('DOMContentLoaded', () => {
       ];
       let selectedAeroPattern = aeroPatterns[Math.floor(Math.random() * aeroPatterns.length)];
 
-      steps.push({ phase: 'Main-持久', style: getRandomStyle(cfg.style) + ` (${selectedAeroPattern})`, dist: mainAeroDist, reps: aeroReps, total: mainAeroDist*aeroReps, desc: `${mainAeroDist}mでの持久セッション。ペースのタレをなくしイーブンストロークで維持。`, cycle: `${formatSeconds(a_cyc)}`, intensity: 'En1' });
+      steps.push({ phase: 'Main-持久', style: getRandomStyle(cfg.style) + ` (${selectedAeroPattern})`, dist: mainAeroDist, reps: dReps, total: mainAeroDist*dReps, desc: `${mainAeroDist}mでの持久セッション。ペースを安定させストローク長をキープ。`, cycle: `${formatSeconds(a_cyc)}`, intensity: 'En1' });
 
       // 4. スプリント高強度
       if (speedTarget > 0) {
         let sDist = 50;
+        if (pool === 25 && Math.random() < 0.35) {
+          sDist = 25;
+        }
         let sReps = Math.max(2, Math.round(speedTarget / sDist));
-        let s_cyc = Math.round((base * 2.0) / 5) * 5; // 十分なレスト
+        let s_cyc = Math.round((base * (sDist / 100) * 2.0) / 5) * 5; 
         
         let speedPatterns = [
           "Swim (All-Out / Max)",
@@ -812,14 +806,13 @@ document.addEventListener('DOMContentLoaded', () => {
         ];
         let selectedSpeedPattern = speedPatterns[Math.floor(Math.random() * speedPatterns.length)];
 
-        steps.push({ phase: 'Main-高強度', style: getRandomStyle(cfg.style) + ` (${selectedSpeedPattern})`, dist: sDist, reps: sReps, total: sDist*sReps, desc: 'スタートから完全なMAXスプリント。ピッチの上限を高め、呼吸数を制御。', cycle: `${formatSeconds(s_cyc)}`, intensity: 'AN1' });
+        steps.push({ phase: 'Main-高強度', style: getRandomStyle(cfg.style) + ` (${selectedSpeedPattern})`, dist: sDist, reps: sReps, total: sDist*sReps, desc: '完全回復から最大出力を発揮。ピッチの上限を叩き出し、レース後半を想定。', cycle: `${formatSeconds(s_cyc)}`, intensity: 'AN1' });
       }
 
-      // ③ 無限ループを回避する安全な合計距離の調整調整（バリデーター）
+      // ③ 合計距離調整（10%誤差ルール緊縛バリデーター）
       let totalSum = 0;
       steps.forEach(s => totalSum += s.total);
 
-      // 持久メインパートを使って、±10%に収まるよう本数を「1回だけ」安全に補正
       let mainStep = steps.find(s => s.phase === 'Main-持久');
       if (mainStep) {
         let diff = targetDist - totalSum;
@@ -830,7 +823,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       }
 
-      // 最終計算
       totalSum = 0;
       steps.forEach(s => totalSum += s.total);
 
@@ -844,7 +836,6 @@ document.addEventListener('DOMContentLoaded', () => {
         coachingTip: "" 
       };
 
-      // 動的な推定合計時間を算出
       let calculatedEstTime = calculateMenuTotalTime(menuObj);
       menuObj.estimatedTime = calculatedEstTime;
 
@@ -924,7 +915,6 @@ document.addEventListener('DOMContentLoaded', () => {
       lucide.createIcons();
     }
 
-    // リアルタイム編集イベントの確実な同期
     function updateText(gIdx, sIdx, field, element, isNum = false) {
       const val = element.innerText.trim();
       const menu = generatedActiveGroups[gIdx];
@@ -936,7 +926,6 @@ document.addEventListener('DOMContentLoaded', () => {
         menu.steps[sIdx][field] = val;
       }
 
-      // 単一ステップの総距離を更新表示
       const step = menu.steps[sIdx];
       step.total = step.dist * step.reps;
       const stepTotalEl = document.getElementById(`step-total-${gIdx}-${sIdx}`);
@@ -944,7 +933,6 @@ document.addEventListener('DOMContentLoaded', () => {
         stepTotalEl.innerText = step.total;
       }
       
-      // レーン全体の「総距離」をリアルタイム再計算＆表示反映
       let totalDist = 0;
       menu.steps.forEach(s => {
         totalDist += s.total;
@@ -952,7 +940,6 @@ document.addEventListener('DOMContentLoaded', () => {
       menu.totalDistance = totalDist;
       document.getElementById(`total-dist-display-${gIdx}`).innerText = `${totalDist}m`;
 
-      // レーン全体の「目安時間」をリアルタイム再計算＆表示反映
       const updatedTotalTime = calculateMenuTotalTime(menu);
       menu.estimatedTime = updatedTotalTime;
       document.getElementById(`total-time-display-${gIdx}`).innerText = updatedTotalTime;
@@ -967,7 +954,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function printMultiLayout() {
-      // 印刷直前に現在入力中のContentEditableのフォーカスを強制的に外し、確実に最新値をコミットする
+      // 編集中のインプットを強制確定
       if (document.activeElement && document.activeElement.blur) {
         document.activeElement.blur();
       }
@@ -979,7 +966,6 @@ document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('print-sheet-date').innerText = `作成日: ${todayStr}`;
 
       generatedActiveGroups.forEach(menu => {
-        // 印刷用に総距離と目安時間を完全に再集計
         let exactTotal = 0;
         let exactTime = calculateMenuTotalTime(menu);
         let trs = '';
@@ -1023,7 +1009,6 @@ document.addEventListener('DOMContentLoaded', () => {
         container.appendChild(sec);
       });
       
-      // システムのプリントダイアログを開く
       window.print();
     }
 
@@ -1079,7 +1064,6 @@ document.addEventListener('DOMContentLoaded', () => {
       if(id === 'saved') loadSavedMenus();
     }
 
-    // 画面用通知トースト
     function alertCustom(msg) {
       const box = document.createElement('div');
       box.className = "fixed bottom-5 right-5 z-50 bg-slate-950 text-white px-5 py-4 rounded-xl shadow-2xl border border-slate-800 max-w-sm transition-all transform translate-y-0 opacity-100 flex items-start gap-3";
@@ -1105,9 +1089,8 @@ document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('ai-tuner-prompt').value = text;
     }
 
-    // 指数バックオフ付きAPI呼び出し共通関数
     async function callGeminiAPI(payload) {
-      const apiKey = ""; // 実行環境にて自動マウントされるキーを使用
+      const apiKey = ""; 
       const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
       
       let delay = 1000;
@@ -1130,7 +1113,6 @@ document.addEventListener('DOMContentLoaded', () => {
       throw new Error("Gemini APIへの接続が5回連続で失敗しました。ネットワークを確認してください。");
     }
 
-    // AIメニュー魔法チューニング
     async function tuneMenuWithAi() {
       if (generatedActiveGroups.length === 0) {
         alertCustom("まずは「最適化メニューを一括生成」ボタンでベースとなるメニューを作成してください。");
@@ -1143,14 +1125,12 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      // UIをローディング中＆非活性化に変更
       const btn = document.getElementById('btn-ai-tune');
       const originalText = btn.innerHTML;
       btn.innerHTML = `<span class="animate-spin mr-1">🌀</span>AIがメニューを最適化中...`;
       btn.disabled = true;
       document.getElementById('lanes-grid').classList.add('ai-loading-glow');
 
-      // 構造化JSONスキーマの定義
       const schema = {
         type: "OBJECT",
         properties: {
@@ -1223,20 +1203,18 @@ document.addEventListener('DOMContentLoaded', () => {
             generatedActiveGroups = parsedData.groups;
             renderLanesGrid();
             alertCustom("✨ Gemini AI がコーチの指示通りにメニューをチューニングしました！");
-            document.getElementById('ai-tuner-prompt').value = ""; // 入力欄リセット
+            document.getElementById('ai-tuner-prompt').value = ""; 
           }
         }
       } catch (err) {
         alertCustom(`エラーが発生しました: ${err.message}`);
       } finally {
-        // UI復元
         btn.innerHTML = originalText;
         btn.disabled = false;
         document.getElementById('lanes-grid').classList.remove('ai-loading-glow');
       }
     }
 
-    // AI合同指導案・ホワイトボード戦略メモの生成
     async function generateAiStrategy() {
       if (generatedActiveGroups.length === 0) {
         alertCustom("まずは「最適化メニューを一括生成」ボタンで練習メニューを作成してください。");
@@ -1271,7 +1249,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const result = await callGeminiAPI(payload);
         const rawText = result.candidates?.[0]?.content?.parts?.[0]?.text;
         if (rawText) {
-          // 簡単なMarkdownパーサー（HTML置き換え）
           let parsedHtml = rawText
             .replace(/\n/g, '<br>')
             .replace(/### (.*?)(<br>|$)/g, '<h4 class="font-extrabold text-sm text-indigo-400 mt-4 mb-2 flex items-center gap-1">✨ $1</h4>')
