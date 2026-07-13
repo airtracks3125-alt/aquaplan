@@ -80,7 +80,16 @@
   </style>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col">
-
+ <!-- 簡易セキュリティロック画面 -->
+ <div id="app-lock-screen" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(30, 41, 59, 0.98); z-index: 99999; display: flex; flex-direction: column; justify-content: center; align-items: center; color: white; font-family: sans-serif;">
+    <div style="background: #1e293b; padding: 30px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); text-align: center; max-width: 400px; width: 90%; border: 1px solid #334155;">
+        <h2 style="margin-top: 0; color: #38bdf8; font-size: 24px; margin-bottom: 10px;">🌊 AquaPlan PRO</h2>
+        <p style="color: #94a3b8; font-size: 14px; margin-bottom: 25px;">これより先はチーム関係者専用エリアです。<br>配布された合言葉を入力してください。</p>
+        <input type="password" id="secret-code-input" placeholder="合言葉を入力" style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #475569; background: #0f172a; color: white; font-size: 16px; text-align: center; box-sizing: border-box; margin-bottom: 15px;">
+        <button onclick="checkSecretCode()" style="width: 100%; padding: 12px; border-radius: 6px; border: none; background: #0284c7; color: white; font-size: 16px; font-weight: bold; cursor: pointer; transition: background 0.2s;">認証する</button>
+        <p id="lock-error-msg" style="color: #ef4444; font-size: 13px; margin-top: 10px; display: none;">⚠️ 合言葉が正しくありません</p>
+    </div>
+</div>
   <!-- ヘッダー -->
   <header class="bg-slate-950 border-b border-slate-800 text-white shadow-md no-print sticky top-0 z-40">
     <div class="max-w-7xl mx-auto px-4 py-3 flex flex-col sm:flex-row justify-between items-center gap-4">
@@ -465,6 +474,35 @@
   </div>
 
   <script>
+     // セキュリティコードの判定
+function checkSecretCode() {
+    const input = document.getElementById('secret-code-input').value;
+    const errorMsg = document.getElementById('lock-error-msg');
+    
+    // 💡 ここに好きな合言葉を設定してください
+    const correctAnswer = 'team-aqua2026'; 
+
+    if (input === correctAnswer) {
+        // 正解ならロック画面を消す
+        document.getElementById('app-lock-screen').style.display = 'none';
+    } else {
+        // 不正解ならエラーメッセージを表示
+        errorMsg.style.display = 'block';
+        document.getElementById('secret-code-input').value = '';
+    }
+}
+
+// Enterキーでも認証できるようにする
+document.addEventListener('DOMContentLoaded', () => {
+    const inputField = document.getElementById('secret-code-input');
+    if (inputField) {
+        inputField.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                checkSecretCode();
+            }
+        });
+    }
+});
     let generatedActiveGroups = [];
     
     // 技術課題ドリル・スタート・ターン
