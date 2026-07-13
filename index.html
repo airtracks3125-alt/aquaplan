@@ -480,7 +480,9 @@
     function checkSecretCode() {
       const input = document.getElementById('secret-code-input').value;
       const errorMsg = document.getElementById('lock-error-msg');
-      const correctAnswer = ‘axtswim’; 
+      
+      // 💡 合言葉を半角のストレートクォートで確実に指定
+      const correctAnswer = 'axtswim'; 
 
       if (input === correctAnswer) {
         document.getElementById('app-lock-screen').style.display = 'none';
@@ -1084,7 +1086,6 @@
     // ──────────────────────────────────────────
     // ✨ Gemini API LLM 連携実装セクション
     // ──────────────────────────────────────────
-
     function applyQuickAiPrompt(text) {
       document.getElementById('ai-tuner-prompt').value = text;
     }
@@ -1173,7 +1174,7 @@
 
       const systemInstruction = `あなたは超一流の競泳ナショナルチーム代表コーチです。
 ユーザーから提供される「現在のレーン別メニュー（JSONデータ）」と「コーチからのチューニング調整指示（自然言語）」を読み取り、
-指示を完全に反映した新しいメニュー構造にアップデートして指定のJSON形式で返却してください。
+指示を完全に反映した新しいメニュー構造にアップデートして指定 of JSON形式で返却してください。
 
 【厳格なルール】
 1. 各練習ステップの total は必ず dist * reps の計算式と一致している必要があります。
@@ -1253,7 +1254,7 @@
             .replace(/\n/g, '<br>')
             .replace(/### (.*?)(<br>|$)/g, '<h4 class="font-extrabold text-sm text-indigo-400 mt-4 mb-2 flex items-center gap-1">✨ $1</h4>')
             .replace(/## (.*?)(<br>|$)/g, '<h3 class="font-black text-base text-indigo-300 mt-6 mb-3 border-b border-indigo-950 pb-1">$1</h3>')
-            .replace(/\*\*(.*?)\*\*/g, '<strong class="text-white font-bold">$1</strong>')
+            .replace(/\*\*(.*?)\*\"/g, '<strong class="text-white font-bold">$1</strong>')
             .replace(/- (.*?)(<br>|$)/g, '<div class="pl-4 py-1 flex items-start gap-1.5"><span class="text-indigo-500">•</span><p class="text-slate-300">$1</p></div>');
 
           document.getElementById('ai-strategy-content').innerHTML = parsedHtml;
