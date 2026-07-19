@@ -1,0 +1,1021 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AquaPlan PRO - 競泳メニューCommand Center</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Google Fonts (Noto Sans JP) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Noto Sans JP', sans-serif;
+    }
+    /* 印刷時のレイアウト調整 */
+    @media print {
+      body {
+        background: white !important;
+        color: black !important;
+      }
+      .no-print {
+        display: none !important;
+      }
+      .print-page {
+        width: 100% !important;
+        max-width: 100% !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        box-shadow: none !important;
+      }
+    }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col antialiased">
+
+  <!-- ================= HEADER ================= -->
+  <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-40 no-print">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="bg-blue-600 text-white p-2 rounded-xl shadow-lg shadow-blue-500/20">
+          <i data-lucide="waves" class="w-6 h-6"></i>
+        </div>
+        <div>
+          <h1 class="font-black text-xl tracking-wider text-white flex items-center gap-2">
+            AquaPlan <span class="bg-blue-500/20 text-blue-400 text-xs px-2 py-0.5 rounded-full border border-blue-500/30">PRO v4.2</span>
+          </h1>
+          <p class="text-[10px] text-slate-400">Swim Coaching Command Center</p>
+        </div>
+      </div>
+
+      <!-- 右側コントロール -->
+      <div class="flex items-center gap-3">
+        <!-- 合言葉確認 -->
+        <div id="badge-unlocked" class="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs">
+          <i data-lucide="shield-check" class="w-3.5 h-3.5"></i>
+          <span>認証済み: axtswim</span>
+        </div>
+
+        <!-- APIキー設定ボタン -->
+        <button onclick="openSettingsModal()" class="flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-sm font-medium transition duration-200">
+          <i data-lucide="settings" class="w-4 h-4 text-slate-400"></i>
+          <span class="hidden sm:inline">AI設定</span>
+          <span id="api-status-indicator" class="w-2 h-2 rounded-full bg-red-500"></span>
+        </button>
+
+        <!-- 印刷ボタン -->
+        <button onclick="window.print()" class="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold shadow-lg shadow-blue-600/25 transition duration-200">
+          <i data-lucide="printer" class="w-4 h-4"></i>
+          <span>印刷用表示</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ================= GUEST COVER (合言葉ロック) ================= -->
+  <div id="auth-gate" class="fixed inset-0 bg-slate-950 z-50 flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 p-8 rounded-3xl max-w-md w-full shadow-2xl relative overflow-hidden">
+      <div class="absolute -top-24 -left-24 w-48 h-48 bg-blue-500/10 rounded-full blur-3xl"></div>
+      <div class="absolute -bottom-24 -right-24 w-48 h-48 bg-indigo-500/10 rounded-full blur-3xl"></div>
+
+      <div class="text-center relative">
+        <div class="mx-auto w-16 h-16 bg-blue-600/10 text-blue-500 rounded-2xl flex items-center justify-center mb-6 border border-blue-500/20">
+          <i data-lucide="lock" class="w-8 h-8"></i>
+        </div>
+        <h2 class="text-2xl font-black text-white mb-2">関係者専用アクセス</h2>
+        <p class="text-slate-400 text-sm mb-6">ベータテストにご協力いただきありがとうございます。配布された合言葉を入力してください。</p>
+
+        <div class="space-y-4">
+          <input type="password" id="gate-password" placeholder="合言葉を入力" class="w-full px-4 py-3.5 rounded-xl bg-slate-800 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 text-center tracking-widest text-lg font-bold">
+          <button onclick="checkAuthPassword()" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-3.5 rounded-xl font-bold transition duration-200 shadow-lg shadow-blue-600/20">
+            ロック解除
+          </button>
+          <p id="gate-error" class="text-red-400 text-xs font-semibold hidden">合言葉が正しくありません。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MAIN CONTENT ================= -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 no-print">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      
+      <!-- 左ペイン: 設定 & メニュー生成コントロール (col-4) -->
+      <section class="lg:col-span-4 space-y-6">
+        <div class="bg-slate-800/50 border border-slate-800 p-6 rounded-3xl shadow-xl space-y-6">
+          <div class="flex items-center gap-2 pb-4 border-b border-slate-700/50">
+            <i data-lucide="sliders" class="w-5 h-5 text-blue-400"></i>
+            <h3 class="font-bold text-lg text-white">メニュー作成パラメーター</h3>
+          </div>
+
+          <!-- 練習タイプ -->
+          <div class="space-y-2">
+            <label class="text-xs text-slate-400 font-bold block">本日のトレーニング期 / 目的</label>
+            <select id="param-purpose" class="w-full px-3 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-white text-sm focus:ring-1 focus:ring-blue-500 focus:outline-none">
+              <option value="EN1 (持久力・有酸素ベース構築)">EN1 (持久力・基礎有酸素)</option>
+              <option value="EN2 (AT値向上・持久力強化)">EN2 (乳酸閾値・AT)</option>
+              <option value="EN3 (最大酸素摂取量・ハード)">EN3 (VO2max・ハイインテンシティ)</option>
+              <option value="AN1 (耐乳酸トレーニング)">AN1 (耐乳酸・スピード持続)</option>
+              <option value="AN2 (最大スピード・スプリント)">AN2 (最大速度・アラクタシード)</option>
+              <option value="Rec / Recovery (アクティブリカバリー)">Recovery (アクティブリカバリー)</option>
+            </select>
+          </div>
+
+          <!-- 総距離の目安 -->
+          <div class="space-y-2">
+            <label class="text-xs text-slate-400 font-bold block">目標総距離 (m)</label>
+            <div class="grid grid-cols-3 gap-2">
+              <button onclick="setTargetDistance(3000)" class="dist-btn px-3 py-2 rounded-xl bg-slate-700/50 hover:bg-slate-700 text-xs font-semibold border border-slate-600">3000m</button>
+              <button onclick="setTargetDistance(4500)" class="dist-btn px-3 py-2 rounded-xl bg-blue-600/20 text-blue-400 border border-blue-500/30 text-xs font-semibold">4500m</button>
+              <button onclick="setTargetDistance(6000)" class="dist-btn px-3 py-2 rounded-xl bg-slate-700/50 hover:bg-slate-700 text-xs font-semibold border border-slate-600">6000m</button>
+            </div>
+            <input type="number" id="param-distance" value="4500" class="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-white text-sm text-center font-mono mt-2">
+          </div>
+
+          <!-- プール長 -->
+          <div class="space-y-2">
+            <label class="text-xs text-slate-400 font-bold block">プールサイズ</label>
+            <div class="grid grid-cols-2 gap-2">
+              <button id="pool-short" onclick="setPoolLength(25)" class="px-3 py-2 rounded-xl bg-blue-600 text-white text-xs font-semibold">短水路 (25m)</button>
+              <button id="pool-long" onclick="setPoolLength(50)" class="px-3 py-2 rounded-xl bg-slate-700/50 hover:bg-slate-700 text-slate-300 border border-slate-600 text-xs font-semibold">長水路 (50m)</button>
+            </div>
+          </div>
+
+          <!-- 一括生成ボタン -->
+          <button onclick="generateAllMenus()" class="w-full py-4 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black text-base transition duration-200 shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2">
+            <i data-lucide="sparkles" class="w-5 h-5"></i>
+            <span>3レーン一括メニュー生成</span>
+          </button>
+        </div>
+
+        <!-- AIチューニングパネル -->
+        <div class="bg-slate-800/50 border border-slate-800 p-6 rounded-3xl shadow-xl space-y-4">
+          <div class="flex items-center gap-2 pb-2 border-b border-slate-700/50">
+            <i data-lucide="wand-2" class="w-5 h-5 text-purple-400"></i>
+            <h3 class="font-bold text-lg text-white">AIメニュー・チューナー</h3>
+          </div>
+          <p class="text-xs text-slate-400 leading-relaxed">
+            生成された3つのメニューを、AIがさらに細かくチューニングします。プールサイドでの直感的な要望をそのまま入力してください。
+          </p>
+          <textarea id="ai-tuning-prompt" placeholder="例: 「後半をIM（個人メドレー）強化にして」「Cレーンのサークルを全体的にあと15秒緩めて」「Kickを少し減らしてPullを増やして」" class="w-full h-28 px-3 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-white text-sm placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 resize-none"></textarea>
+          
+          <button onclick="executeAiTuning()" class="w-full py-3 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-sm transition duration-200 flex items-center justify-center gap-2 shadow-lg shadow-purple-600/25">
+            <i data-lucide="wand-2" class="w-4 h-4"></i>
+            <span>魔法チューニングを実行</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- 右ペイン: 3レーンメニュー表示 & エディタ (col-8) -->
+      <section class="lg:col-span-8 space-y-6">
+        
+        <!-- レーン別タブナビゲーション -->
+        <div class="bg-slate-800/30 p-1.5 rounded-2xl border border-slate-800 flex gap-2">
+          <button onclick="switchLaneTab('A')" id="tab-A" class="flex-1 py-3 px-4 rounded-xl font-bold text-sm transition duration-150 bg-blue-600 text-white">
+            Aレーン <span class="text-xs font-normal opacity-80">(トップ/選抜)</span>
+          </button>
+          <button onclick="switchLaneTab('B')" id="tab-B" class="flex-1 py-3 px-4 rounded-xl font-bold text-sm transition duration-150 text-slate-400 hover:text-slate-200 hover:bg-slate-800/50">
+            Bレーン <span class="text-xs font-normal opacity-80">(中級/準選手)</span>
+          </button>
+          <button onclick="switchLaneTab('C')" id="tab-C" class="flex-1 py-3 px-4 rounded-xl font-bold text-sm transition duration-150 text-slate-400 hover:text-slate-200 hover:bg-slate-800/50">
+            Cレーン <span class="text-xs font-normal opacity-80">(初級/一般)</span>
+          </button>
+        </div>
+
+        <!-- メニュー編集カード -->
+        <div class="bg-slate-800/50 border border-slate-800 rounded-3xl shadow-xl overflow-hidden">
+          <div class="px-6 py-4 bg-slate-800 border-b border-slate-700 flex justify-between items-center">
+            <div class="flex items-center gap-2">
+              <span id="active-lane-badge" class="px-2.5 py-1 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20 font-black text-xs">LANE A</span>
+              <h4 class="font-bold text-slate-200 text-sm">メニュー項目 (クリックして直接修正可能)</h4>
+            </div>
+            <span id="active-lane-distance" class="text-sm font-mono text-slate-400 font-bold">Total: 4500m / 約0分</span>
+          </div>
+
+          <div class="p-6 space-y-4" id="menu-fields-container">
+            <!-- JavaScriptにより各フェーズの入力欄が動的生成される -->
+          </div>
+        </div>
+
+        <!-- AI指導ポイント & ホワイトボード用サマリー -->
+        <div class="bg-slate-800/50 border border-slate-800 p-6 rounded-3xl shadow-xl space-y-4">
+          <div class="flex items-center justify-between pb-3 border-b border-slate-700/50">
+            <div class="flex items-center gap-2">
+              <i data-lucide="clipboard-list" class="w-5 h-5 text-emerald-400"></i>
+              <h3 class="font-bold text-lg text-white">AI合同指導案 ＆ ホワイトボード要約</h3>
+            </div>
+            <button onclick="generateCoachingGuide()" class="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition duration-150 flex items-center gap-1.5 shadow-md shadow-emerald-600/20">
+              <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+              <span>指導案を自動生成</span>
+            </button>
+          </div>
+          <div id="coaching-guide-box" class="bg-slate-900/50 rounded-2xl p-5 border border-slate-800 text-slate-300 text-sm leading-relaxed min-h-[120px] flex items-center justify-center text-center">
+            <div class="text-slate-500">
+              <i data-lucide="info" class="w-8 h-8 mx-auto mb-2 opacity-50"></i>
+              「指導案を自動生成」ボタンを押すと、AIが全レーンのメニューを俯瞰したコーチ用指導ガイドと、ホワイトボードに書くべき要約テキストを作成します。
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+    </div>
+  </main>
+
+  <!-- ================= PRINTING SHEET (印刷時にのみ美しく出現) ================= -->
+  <div class="hidden print:block print-page p-8 bg-white text-slate-900 min-h-screen">
+    <div class="flex justify-between items-start border-b-4 border-blue-600 pb-4 mb-6">
+      <div>
+        <h1 class="text-3xl font-black tracking-wider text-blue-900 flex items-center gap-2">
+          AquaPlan PRO <span class="text-lg font-bold text-slate-500">SWIM SHEET</span>
+        </h1>
+        <p class="text-xs text-slate-500 mt-1 font-semibold">Smart AI Swim Coach Assistant — Precision Training Protocol</p>
+      </div>
+      <div class="text-right text-xs">
+        <p class="font-bold text-slate-800" id="print-date">日付: 2026年 --月 --日</p>
+        <p id="print-purpose" class="mt-1 font-bold text-blue-700">目的: EN2 AT向上</p>
+      </div>
+    </div>
+
+    <!-- 印刷用3レーン並列テーブル -->
+    <div class="grid grid-cols-3 gap-6">
+      <!-- Aレーン -->
+      <div class="border-2 border-slate-300 rounded-2xl overflow-hidden shadow-sm flex flex-col justify-between">
+        <div>
+          <div class="bg-slate-100 py-3 px-4 font-black text-center border-b-2 border-slate-300 text-slate-800 tracking-wider">
+            Aレーン <span class="text-xs font-normal text-slate-500">(選抜)</span>
+            <div class="text-[11px] font-mono font-bold text-blue-600 mt-0.5" id="print-stats-A">Total: 0m / 0分</div>
+          </div>
+          <div class="divide-y divide-slate-200" id="print-lane-A"></div>
+        </div>
+      </div>
+      <!-- Bレーン -->
+      <div class="border-2 border-slate-300 rounded-2xl overflow-hidden shadow-sm flex flex-col justify-between">
+        <div>
+          <div class="bg-slate-100 py-3 px-4 font-black text-center border-b-2 border-slate-300 text-slate-800 tracking-wider">
+            Bレーン <span class="text-xs font-normal text-slate-500">(中級)</span>
+            <div class="text-[11px] font-mono font-bold text-blue-600 mt-0.5" id="print-stats-B">Total: 0m / 0分</div>
+          </div>
+          <div class="divide-y divide-slate-200" id="print-lane-B"></div>
+        </div>
+      </div>
+      <!-- Cレーン -->
+      <div class="border-2 border-slate-300 rounded-2xl overflow-hidden shadow-sm flex flex-col justify-between">
+        <div>
+          <div class="bg-slate-100 py-3 px-4 font-black text-center border-b-2 border-slate-300 text-slate-800 tracking-wider">
+            Cレーン <span class="text-xs font-normal text-slate-500">(初級)</span>
+            <div class="text-[11px] font-mono font-bold text-blue-600 mt-0.5" id="print-stats-C">Total: 0m / 0分</div>
+          </div>
+          <div class="divide-y divide-slate-200" id="print-lane-C"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 印刷用指導メモ -->
+    <div class="mt-6 border-2 border-slate-300 rounded-2xl p-5 bg-slate-50">
+      <h3 class="font-black text-sm text-blue-900 mb-3 border-b-2 border-slate-200 pb-1.5 flex items-center gap-1.5">
+        <span class="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
+        全レーン合同コーチング・メモ ＆ 指導指針
+      </h3>
+      <div id="print-coaching-guide" class="text-xs font-medium space-y-2 whitespace-pre-line text-slate-700 leading-relaxed">
+        （メニュー画面の「指導案を自動生成」を行うと、ここにも自動で印刷用ガイドが反映されます）
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= LOADING OVERLAY ================= -->
+  <div id="loading-overlay" class="fixed inset-0 bg-slate-950/85 z-50 flex items-center justify-center p-4 hidden">
+    <div class="text-center">
+      <div class="relative w-20 h-20 mx-auto mb-6">
+        <div class="absolute inset-0 border-4 border-blue-500/30 rounded-full"></div>
+        <div class="absolute inset-0 border-4 border-t-blue-500 rounded-full animate-spin"></div>
+        <div class="absolute inset-4 bg-slate-900 rounded-full flex items-center justify-center text-blue-400">
+          <i data-lucide="waves" class="w-6 h-6 animate-pulse"></i>
+        </div>
+      </div>
+      <h3 class="text-lg font-bold text-white mb-2" id="loading-title">AIがメニューを生成中...</h3>
+      <p class="text-xs text-slate-400" id="loading-subtitle">少し時間がかかる場合があります（約5〜15秒）</p>
+    </div>
+  </div>
+
+  <!-- ================= SETTINGS MODAL (⚙️ AI設定) ================= -->
+  <div id="settings-modal" class="fixed inset-0 bg-slate-950/80 z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-slate-900 border border-slate-800 p-6 rounded-3xl max-w-lg w-full shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div class="flex items-center gap-2">
+          <i data-lucide="settings" class="w-5 h-5 text-blue-400"></i>
+          <h3 class="font-bold text-lg text-white">AIチューニング設定 (APIキー)</h3>
+        </div>
+        <button onclick="closeSettingsModal()" class="text-slate-400 hover:text-white">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="space-y-4 text-xs text-slate-300 leading-relaxed">
+        <div class="bg-blue-500/10 border border-blue-500/20 rounded-xl p-3 text-blue-400">
+          <strong>🔒 プライバシー保護について：</strong><br>
+          入力したキーは、ご利用のスマホ・PCのローカルストレージに直接保存され、GitHub等の外部ネットワークには一切漏洩しません。ご安心ください。
+        </div>
+
+        <div class="space-y-2">
+          <label class="font-bold text-slate-400 block">Google AI Studio APIキー (完全無料)</label>
+          <input type="password" id="input-api-key" placeholder="AIキー (AIzaSy...)" class="w-full px-3 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-white placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono">
+        </div>
+
+        <div class="p-3 bg-slate-800/80 rounded-xl space-y-2">
+          <p class="font-bold text-slate-200">🔑 APIキーの無料取得手順：</p>
+          <ol class="list-decimal pl-4 space-y-1 text-slate-400">
+            <li>下記のリンクから「Google AI Studio」を開きます（要Googleアカウント）。</li>
+            <li>「Get API Key」をクリックし、新規キーを作成してコピーします。</li>
+            <li>上の入力欄に貼り付け、「設定を保存する」をクリックします。</li>
+          </ol>
+          <a href="https://aistudio.google.com/" target="_blank" class="inline-flex items-center gap-1 text-blue-400 hover:underline mt-2 font-bold">
+            Google AI Studio で無料APIキーを取得する <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+          </a>
+        </div>
+      </div>
+
+      <div class="flex gap-2 pt-2">
+        <button onclick="closeSettingsModal()" class="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 font-bold text-xs">閉じる</button>
+        <button onclick="saveApiKey()" class="flex-1 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs">設定を保存する</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= ERROR INSTRUCTION MODAL (エラー詳細・対策モーダル) ================= -->
+  <div id="error-modal" class="fixed inset-0 bg-slate-950/90 z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-slate-900 border border-red-500/30 p-6 rounded-3xl max-w-lg w-full shadow-2xl space-y-4">
+      <div class="text-center">
+        <div class="w-12 h-12 rounded-full bg-red-500/10 text-red-500 flex items-center justify-center mx-auto mb-4 border border-red-500/20">
+          <i data-lucide="alert-triangle" class="w-6 h-6"></i>
+        </div>
+        <h3 class="font-black text-lg text-white">AIの呼び出しでエラーが発生しました</h3>
+        <p class="text-xs text-slate-400 mt-1">考えられる原因と解消法をご案内します。</p>
+      </div>
+
+      <div class="bg-slate-950/50 p-4 rounded-xl border border-slate-800 space-y-2 text-xs font-mono text-red-400 break-words" id="error-details">
+        エラーの詳細はここに表示されます
+      </div>
+
+      <div class="space-y-3 text-xs text-slate-300" id="error-solutions">
+        <!-- エラー内容によってアドバイスを書き換える -->
+      </div>
+
+      <div class="pt-2">
+        <button onclick="closeErrorModal()" class="w-full py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs">理解しました</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= FOOTER ================= -->
+  <footer class="border-t border-slate-800 py-6 bg-slate-950 text-slate-500 text-xs no-print mt-12">
+    <div class="max-w-7xl mx-auto px-4 text-center space-y-2">
+      <p>© 2026 AquaPlan PRO. All Rights Reserved. Designed for elite swimming coaches.</p>
+      <p class="text-[10px]">このアプリは、Google Gemini APIと安全に直接通信を行う、完全プライベート設計のクライアントサイド・ツールです。</p>
+    </div>
+  </footer>
+
+  <!-- ================= JAVASCRIPT LOGIC ================= -->
+  <script>
+    // --- API Key provided by the environment at runtime ---
+    const apiKey = "";
+
+    // --- グローバル状態 ---
+    let currentLane = 'A';
+    let poolLength = 25; // 短水路
+    
+    // 初期の仮メニューテンプレート
+    let menuData = {
+      A: [
+        { phase: 'W-Up', menu: '400m x 1 (8分) SKPS - 各自アップ、最後50mハード' },
+        { phase: 'Kick', menu: '100m x 6 (1分50秒) Choice, Board - 奇数本: 浮き上がりダッシュ, 偶数本: イージー' },
+        { phase: 'Pull', menu: '200m x 4 (3分00秒) Free, Paddle/Buoy - Hypoxic 5, 7, 9 by 50m, 安定したペース維持' },
+        { phase: 'Main', menu: '100m x 15 (1分30秒) Free, High-Pace - EN2ペース目標(ベストタイム+12~15秒程度をキープ)' },
+        { phase: 'Down', menu: '400m x 1 (10分) Easy - 心拍数を下げながら、リラックスしたフォームで' }
+      ],
+      B: [
+        { phase: 'W-Up', menu: '400m x 1 (9分) Choice, Slow - リラックスした泳ぎで有酸素運動を刺激' },
+        { phase: 'Kick', menu: '100m x 4 (2分00秒) Choice, Board - 各自のウィークポイントフォームを意識' },
+        { phase: 'Pull', menu: '150m x 4 (2分30秒) Free, Buoy - フォームをきれいに保ちながら安定ペース' },
+        { phase: 'Main', menu: '100m x 12 (1分45秒) Free - 自身のベストに近いフォームとリズムを崩さずに走り切る' },
+        { phase: 'Down', menu: '300m x 1 (8分) Easy - 心拍数を完全に下げてストレッチを兼ねる' }
+      ],
+      C: [
+        { phase: 'W-Up', menu: '300m x 1 (8分) Choice - のんびり体を温める' },
+        { phase: 'Kick', menu: '50m x 6 (1分30秒) Board - 膝を曲げすぎないきれいなキックを意識' },
+        { phase: 'Pull', menu: '100m x 4 (2分10秒) Free, Buoy - キャッチの位置を確認しながらゆっくり' },
+        { phase: 'Main', menu: '50m x 12 (1分15秒) Free, Pace - 一定のリズムで泳ぐ（サークルアウトしないように頑張る）' },
+        { phase: 'Down', menu: '200m x 1 (6分) Easy - リラックスダウン' }
+      ]
+    };
+
+    // --- 起動時の初期化 ---
+    window.addEventListener('DOMContentLoaded', () => {
+      // 合言葉の自動ログインチェック
+      const isUnlocked = localStorage.getItem('aquaplan_unlocked');
+      if (isUnlocked === 'true') {
+        document.getElementById('auth-gate').classList.add('hidden');
+        document.getElementById('badge-unlocked').classList.remove('hidden');
+      }
+
+      // APIキーの読み込みと表示
+      updateApiIndicator();
+      
+      // 初期のAレーンのUI構築
+      renderActiveLaneMenu();
+      
+      // アイコンをアクティベート
+      lucide.createIcons();
+    });
+
+    // --- 合言葉ログイン処理 ---
+    function checkAuthPassword() {
+      const pwInput = document.getElementById('gate-password').value;
+      if (pwInput === 'axtswim') {
+        localStorage.setItem('aquaplan_unlocked', 'true');
+        document.getElementById('auth-gate').classList.add('hidden');
+        document.getElementById('badge-unlocked').classList.remove('hidden');
+      } else {
+        const err = document.getElementById('gate-error');
+        err.classList.remove('hidden');
+        err.classList.add('animate-shake');
+        setTimeout(() => err.classList.remove('animate-shake'), 500);
+      }
+    }
+
+    // --- APIキー管理 ---
+    function openSettingsModal() {
+      const modal = document.getElementById('settings-modal');
+      const savedKey = localStorage.getItem('aquaplan_api_key') || '';
+      document.getElementById('input-api-key').value = savedKey;
+      modal.classList.remove('hidden');
+    }
+
+    function closeSettingsModal() {
+      document.getElementById('settings-modal').classList.add('hidden');
+    }
+
+    // --- APIキー保存 ---
+    function saveApiKey() {
+      const key = document.getElementById('input-api-key').value.trim();
+      if (key) {
+        localStorage.setItem('aquaplan_api_key', key);
+      } else {
+        localStorage.removeItem('aquaplan_api_key');
+      }
+      closeSettingsModal();
+      updateApiIndicator();
+    }
+
+    function updateApiIndicator() {
+      const indicator = document.getElementById('api-status-indicator');
+      const key = localStorage.getItem('aquaplan_api_key') || apiKey;
+      if (key && (key.startsWith('AIzaSy') || key.length > 0)) {
+        indicator.className = "w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-md shadow-emerald-500/50";
+      } else {
+        indicator.className = "w-2.5 h-2.5 rounded-full bg-red-500 shadow-md shadow-red-500/50";
+      }
+    }
+
+    // --- パラメーター調整・UI制御 ---
+    function setTargetDistance(dist) {
+      document.getElementById('param-distance').value = dist;
+      // ボタンのアクティブ色変更
+      document.querySelectorAll('.dist-btn').forEach(btn => {
+        btn.className = "dist-btn px-3 py-2 rounded-xl bg-slate-700/50 hover:bg-slate-700 text-xs font-semibold border border-slate-600";
+      });
+      event.target.className = "dist-btn px-3 py-2 rounded-xl bg-blue-600/20 text-blue-400 border border-blue-500/30 text-xs font-semibold";
+    }
+
+    // --- プールサイズ設定 ---
+    function setPoolLength(length) {
+      poolLength = length;
+      const shBtn = document.getElementById('pool-short');
+      const loBtn = document.getElementById('pool-long');
+      if (length === 25) {
+        shBtn.className = "px-3 py-2 rounded-xl bg-blue-600 text-white text-xs font-semibold";
+        loBtn.className = "px-3 py-2 rounded-xl bg-slate-700/50 hover:bg-slate-700 text-slate-300 border border-slate-600 text-xs font-semibold";
+      } else {
+        loBtn.className = "px-3 py-2 rounded-xl bg-blue-600 text-white text-xs font-semibold";
+        shBtn.className = "px-3 py-2 rounded-xl bg-slate-700/50 hover:bg-slate-700 text-slate-300 border border-slate-600 text-xs font-semibold";
+      }
+    }
+
+    // --- レーン切り替え ---
+    function switchLaneTab(lane) {
+      currentLane = lane;
+      // アクティブタブのスタイル切り替え
+      ['A', 'B', 'C'].forEach(l => {
+        const btn = document.getElementById(`tab-${l}`);
+        if (l === lane) {
+          btn.className = "flex-1 py-3 px-4 rounded-xl font-bold text-sm transition duration-150 bg-blue-600 text-white";
+        } else {
+          btn.className = "flex-1 py-3 px-4 rounded-xl font-bold text-sm transition duration-150 text-slate-400 hover:text-slate-200 hover:bg-slate-800/50";
+        }
+      });
+
+      // バッジ書き換え
+      const badges = {
+        A: 'LANE A (選抜)',
+        B: 'LANE B (中級)',
+        C: 'LANE C (初級)'
+      };
+      document.getElementById('active-lane-badge').textContent = badges[lane];
+      
+      // UIを描画
+      renderActiveLaneMenu();
+    }
+
+    // --- インテリジェント距離・目安時間解析ロジック ---
+    function calculateItemStats(menuStr) {
+      // 1. 距離の解析 (例: 100m x 6 -> 600m)
+      const distMatch = menuStr.match(/(\d+)m\s*x\s*(\d+)/i);
+      let dist = 0;
+      if (distMatch) {
+        dist = parseInt(distMatch[1]) * parseInt(distMatch[2]);
+      } else {
+        const singleMatch = menuStr.match(/(\d+)m/);
+        if (singleMatch) dist = parseInt(singleMatch[1]);
+      }
+
+      // 2. 所要目安時間の自動解析 (例: (1分50秒) x 6本 -> 11分)
+      const countMatch = menuStr.match(/x\s*(\d+)/i);
+      const count = countMatch ? parseInt(countMatch[1]) : 1;
+
+      let totalSeconds = 0;
+      const timeMatch = menuStr.match(/\((\d+分)?(\d+秒)?\)/);
+      if (timeMatch) {
+        const mins = timeMatch[1] ? parseInt(timeMatch[1].replace('分', '')) : 0;
+        const secs = timeMatch[2] ? parseInt(timeMatch[2].replace('秒', '')) : 0;
+        totalSeconds = (mins * 60 + secs) * count;
+      } else {
+        const colonMatch = menuStr.match(/\((\d+):(\d+)\)/);
+        if (colonMatch) {
+          const mins = parseInt(colonMatch[1]) || 0;
+          const secs = parseInt(colonMatch[2]) || 0;
+          totalSeconds = (mins * 60 + secs) * count;
+        }
+      }
+      const mins = Math.round(totalSeconds / 60);
+
+      return { dist, mins };
+    }
+
+    function calculateLaneStats(lane) {
+      const list = menuData[lane];
+      let totalDist = 0;
+      let totalMins = 0;
+
+      list.forEach(item => {
+        const stats = calculateItemStats(item.menu);
+        totalDist += stats.dist;
+        totalMins += stats.mins;
+      });
+
+      return { totalDist, totalMins };
+    }
+
+    // --- メニューUIの描画 ---
+    function renderActiveLaneMenu() {
+      const container = document.getElementById('menu-fields-container');
+      container.innerHTML = '';
+
+      const list = menuData[currentLane];
+      
+      list.forEach((item, index) => {
+        const fieldHtml = `
+          <div class="p-4 bg-slate-900/40 rounded-2xl border border-slate-800 hover:border-slate-700 transition duration-150 space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold text-slate-400 tracking-wider">${item.phase}</span>
+              <button onclick="deletePhase(${index})" class="text-slate-500 hover:text-red-400 transition">
+                <i data-lucide="trash-2" class="w-4 h-4"></i>
+              </button>
+            </div>
+            <input type="text" value="${escapeHtml(item.menu)}" 
+              oninput="updateMenuValue(${index}, this.value)" 
+              class="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700/80 text-white font-mono text-sm focus:outline-none focus:ring-1 focus:ring-blue-500">
+          </div>
+        `;
+        container.insertAdjacentHTML('beforeend', fieldHtml);
+      });
+
+      // 追加ボタンの配置
+      const addBtnHtml = `
+        <button onclick="addNewPhase()" class="w-full py-3 rounded-xl border border-dashed border-slate-700 hover:border-slate-500 text-slate-400 hover:text-slate-200 text-xs font-bold transition duration-150 flex items-center justify-center gap-2">
+          <i data-lucide="plus" class="w-4 h-4"></i>
+          <span>新しいフェーズを追加</span>
+        </button>
+      `;
+      container.insertAdjacentHTML('beforeend', addBtnHtml);
+
+      // 総距離・目安時間をUIに表示
+      const stats = calculateLaneStats(currentLane);
+      document.getElementById('active-lane-distance').textContent = `Total: ${stats.totalDist}m / 約${stats.totalMins}分`;
+      
+      // 印刷用ページもリアルタイム同期
+      syncToPrintSheet();
+      lucide.createIcons();
+    }
+
+    // --- メニューデータ操作 ---
+    function updateMenuValue(index, value) {
+      menuData[currentLane][index].menu = value;
+      // 距離・時間をリアルタイムで再計算
+      const stats = calculateLaneStats(currentLane);
+      document.getElementById('active-lane-distance').textContent = `Total: ${stats.totalDist}m / 約${stats.totalMins}分`;
+      syncToPrintSheet();
+    }
+
+    function deletePhase(index) {
+      menuData[currentLane].splice(index, 1);
+      renderActiveLaneMenu();
+    }
+
+    function addNewPhase() {
+      menuData[currentLane].push({
+        phase: 'Custom',
+        menu: '50m x 4 (1分15秒) Choice - アクティブドリル'
+      });
+      renderActiveLaneMenu();
+    }
+
+    // --- 印刷用シートとのデータ同期 & 高コントラストグリッド生成 ---
+    function syncToPrintSheet() {
+      const today = new Date();
+      document.getElementById('print-date').textContent = `日付: ${today.getFullYear()}年 ${today.getMonth() + 1}月 ${today.getDate()}日`;
+      const purpose = document.getElementById('param-purpose').value;
+      document.getElementById('print-purpose').textContent = `目的: ${purpose}`;
+
+      ['A', 'B', 'C'].forEach(lane => {
+        const stats = calculateLaneStats(lane);
+        document.getElementById(`print-stats-${lane}`).textContent = `Total: ${stats.totalDist}m / 約${stats.totalMins}分`;
+
+        const printBox = document.getElementById(`print-lane-${lane}`);
+        printBox.innerHTML = '';
+        
+        menuData[lane].forEach(item => {
+          const itemStats = calculateItemStats(item.menu);
+          const el = document.createElement('div');
+          el.className = "p-4 hover:bg-slate-50 border-b border-slate-100 last:border-b-0 transition duration-150";
+          el.innerHTML = `
+            <div class="flex justify-between items-center mb-1.5">
+              <span class="px-2 py-0.5 bg-blue-50 text-blue-800 rounded text-[9px] font-bold tracking-wider uppercase border border-blue-100">${item.phase}</span>
+              <span class="text-[10px] font-mono font-bold text-slate-400">
+                ${itemStats.dist > 0 ? itemStats.dist + 'm' : ''} 
+                ${itemStats.mins > 0 ? ' (約' + itemStats.mins + '分)' : ''}
+              </span>
+            </div>
+            <div class="text-[12px] font-bold text-slate-800 font-mono leading-relaxed whitespace-pre-wrap">${escapeHtml(item.menu)}</div>
+          `;
+          printBox.appendChild(el);
+        });
+      });
+    }
+
+    // ==========================================
+    //       ✨ GEMINI AI 連携 ロジック ✨
+    // ==========================================
+
+    function showLoading(title, subtitle = "少し時間がかかる場合があります...") {
+      document.getElementById('loading-title').textContent = title;
+      document.getElementById('loading-subtitle').textContent = subtitle;
+      document.getElementById('loading-overlay').classList.remove('hidden');
+    }
+
+    function hideLoading() {
+      document.getElementById('loading-overlay').classList.add('hidden');
+    }
+
+    async function callGeminiApi(prompt, isJsonMode = false) {
+      let activeKey = apiKey;
+      if (!activeKey) {
+        activeKey = localStorage.getItem('aquaplan_api_key') || "";
+      }
+
+      if (!activeKey) {
+        throw new Error('api_key_empty');
+      }
+
+      // 2026年現在の超高速フラグシップモデル「gemini-3.5-flash」を指定
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${activeKey}`;
+
+      const payload = {
+        contents: [
+          {
+            parts: [{ text: prompt }]
+          }
+        ]
+      };
+
+      if (isJsonMode) {
+        payload.generationConfig = {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: "OBJECT",
+            properties: {
+              lanes: {
+                type: "OBJECT",
+                properties: {
+                  A: {
+                    type: "ARRAY",
+                    items: {
+                      type: "OBJECT",
+                      properties: {
+                        phase: { type: "STRING" },
+                        menu: { type: "STRING" }
+                      },
+                      required: ["phase", "menu"]
+                    }
+                  },
+                  B: {
+                    type: "ARRAY",
+                    items: {
+                      type: "OBJECT",
+                      properties: {
+                        phase: { type: "STRING" },
+                        menu: { type: "STRING" }
+                      },
+                      required: ["phase", "menu"]
+                    }
+                  },
+                  C: {
+                    type: "ARRAY",
+                    items: {
+                      type: "OBJECT",
+                      properties: {
+                        phase: { type: "STRING" },
+                        menu: { type: "STRING" }
+                      },
+                      required: ["phase", "menu"]
+                    }
+                  }
+                },
+                required: ["A", "B", "C"]
+              }
+            },
+            required: ["lanes"]
+          }
+        };
+      }
+
+      try {
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+          const errBody = await response.json().catch(() => ({}));
+          const errCode = errBody.error?.code || response.status;
+          const errMsg = errBody.error?.message || response.statusText;
+          const errStatus = errBody.error?.status || 'UNKNOWN';
+
+          const err = new Error(`API_RESPONSE_ERROR`);
+          err.code = errCode;
+          err.status = errStatus;
+          err.msg = errMsg;
+          throw err;
+        }
+
+        const data = await response.json();
+        const textResult = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (!textResult) {
+          throw new Error('AIから空の返答を受信しました。');
+        }
+
+        return textResult;
+
+      } catch (error) {
+        if (error.message !== 'api_key_empty' && error.message !== 'API_RESPONSE_ERROR') {
+          const networkErr = new Error('NETWORK_OR_CORS_ERROR');
+          networkErr.original = error;
+          throw networkErr;
+        }
+        throw error;
+      }
+    }
+
+    function handleError(error) {
+      console.error("AquaPlan Error Details:", error);
+      const modal = document.getElementById('error-modal');
+      const detailsBox = document.getElementById('error-details');
+      const solutionsBox = document.getElementById('error-solutions');
+
+      modal.classList.remove('hidden');
+
+      if (error.message === 'api_key_empty') {
+        detailsBox.textContent = "エラーコード: API_KEY_MISSING (APIキー未登録)";
+        solutionsBox.innerHTML = `
+          <p class="font-bold text-white">🟢 対処方法：</p>
+          <ul class="list-disc pl-5 space-y-1 text-slate-300">
+            <li>画面右上の「⚙️ AI設定」ボタンをクリックしてください。</li>
+            <li>無料のGoogle APIキーを入力し、「設定を保存」してから再度実行してください。</li>
+          </ul>
+        `;
+        return;
+      }
+
+      if (error.message === 'NETWORK_OR_CORS_ERROR') {
+        detailsBox.textContent = `ネットワーク切断 / CORS制限\n${error.original?.message || ''}`;
+        solutionsBox.innerHTML = `
+          <p class="font-bold text-white">🟢 対処方法：</p>
+          <ul class="list-disc pl-5 space-y-1 text-slate-300">
+            <li><strong>インターネット接続</strong>が正常か確認してください。</li>
+            <li>ブラウザの広告ブロック拡張機能がGoogle APIとの接続を遮断している可能性があります。一時的にOFFにしてください。</li>
+            <li>学校や公共のセキュリティ保護付きWi-Fiからアクセスしている場合、外部APIが遮断されていることがあります。キャリア通信等でお試しください。</li>
+          </ul>
+        `;
+        return;
+      }
+
+      const code = error.code || '???';
+      const status = error.status || 'UNKNOWN';
+      const msg = error.msg || '詳細不明のエラーです。';
+
+      detailsBox.textContent = `ステータスコード: ${code} (${status})\nメッセージ: ${msg}`;
+
+      if (code === 400) {
+        solutionsBox.innerHTML = `
+          <p class="font-bold text-white">🟢 対処方法：</p>
+          <ul class="list-disc pl-5 space-y-1 text-slate-300">
+            <li><strong>APIキーが正しくないか、無効化されています。</strong></li>
+            <li>「⚙️ AI設定」から、APIキーの文字列がキー前後に不要なスペース等を含まないかご確認ください。</li>
+          </ul>
+        `;
+      } else if (code === 429) {
+        solutionsBox.innerHTML = `
+          <p class="font-bold text-white">🟢 対処方法：</p>
+          <ul class="list-disc pl-5 space-y-1 text-slate-300">
+            <li><strong>無料利用の制限枠に達しました。</strong></li>
+            <li>1分ほど時間をおいてから再度お試しください。</li>
+          </ul>
+        `;
+      } else {
+        solutionsBox.innerHTML = `
+          <p class="font-bold text-white">🟢 対処方法：</p>
+          <ul class="list-disc pl-5 space-y-1 text-slate-300">
+            <li>入力したプロンプトを少し変更し、時間を置いてもう一度お試しください。</li>
+          </ul>
+        `;
+      }
+    }
+
+    function closeErrorModal() {
+      document.getElementById('error-modal').classList.add('hidden');
+    }
+
+    async function generateAllMenus() {
+      const purpose = document.getElementById('param-purpose').value;
+      const dist = document.getElementById('param-distance').value;
+      const sizeText = poolLength === 25 ? '短水路 (25m)' : '長水路 (50m)';
+
+      showLoading("AIが3つのメニューを一括生成中...", "競泳のセオリーに沿ってA/B/Cレーンのペースとサークルを設計中...");
+
+      const prompt = `
+        あなたはプロの競泳コーチです。以下の条件に基づいて、同じプールで練習する3つのレーン(A、B、C)の練習メニューを同時に作成してください。
+
+        【条件】
+        - 練習の目的/ターゲット期: ${purpose}
+        - 目標総距離の目安: ${dist}m
+        - プールサイズ: ${sizeText}
+
+        【レーンの属性】
+        - Aレーン (トップ・選抜級): 強度が高くサークルが厳しい。
+        - Bレーン (中級・準選手): Aレーンよりサークルを15秒〜30秒ほど緩め、フォームと両立。
+        - Cレーン (初級・一般): フォーム重視、距離も少なめ。
+
+        各レーンのメニューは、必ず以下の5つのフェーズを含めてください。
+        1. W-Up (ウォーミングアップ)
+        2. Kick (キック練習)
+        3. Pull (プル練習)
+        4. Main (メイン練習)
+        5. Down (イージー・ダウン)
+
+        【重要なルール】
+        - 返答は指定されたJSON形式に完全に準拠し、JSON以外の余計な文字は一切出力しないでください。
+        - 各メニュー項目には、必ず「距離、本数、(サークル時間)を日本語で、意識するポイント」を含めてください。
+          例: "100m x 15 (1分30秒) Free - ハイペース維持"
+      `;
+
+      try {
+        const jsonText = await callGeminiApi(prompt, true);
+        const parsed = JSON.parse(jsonText);
+        
+        if (parsed.lanes) {
+          menuData.A = parsed.lanes.A;
+          menuData.B = parsed.lanes.B;
+          menuData.C = parsed.lanes.C;
+          
+          renderActiveLaneMenu();
+        }
+      } catch (error) {
+        handleError(error);
+      } finally {
+        hideLoading();
+      }
+    }
+
+    async function executeAiTuning() {
+      const tuningInstruction = document.getElementById('ai-tuning-prompt').value.trim();
+      if (!tuningInstruction) {
+        alert("チューニングの要望を入力してください。 (例: '全体的にキックを少し増やして')");
+        return;
+      }
+
+      showLoading("AIが魔法チューニングを実行中...", "ご要望を反映しながら、全てのレーンのメニュー整合性を調整しています");
+
+      const prompt = `
+        あなたはプロの競泳コーチです。現在プールサイドで、すでに作成された3つのレーン(A、B、C)の練習メニューについて、コーチから特定の調整要望を受けました。
+        現在のメニューデータ、および調整要望は以下の通りです。
+
+        【現在のメニューデータ】
+        ${JSON.stringify(menuData, null, 2)}
+
+        【コーチからの調整要望】
+        「${tuningInstruction}」
+
+        【ルール】
+        - この要望に基づき、A、B、Cすべてのレーンにおいて、現在の練習メニューの構成(W-Up, Kick, Pull, Main, Down)や距離、内容を適切に変更・微調整してください。
+        - 各メニューのサークル時間は、必ず「(1分30秒)」のように「(○分○秒)」のフォーマットで記述してください。
+        - 返答は指定されたJSON形式に完全に準拠し、JSON以外のテキストは絶対に返さないでください。
+      `;
+
+      try {
+        const jsonText = await callGeminiApi(prompt, true);
+        const parsed = JSON.parse(jsonText);
+        
+        if (parsed.lanes) {
+          menuData.A = parsed.lanes.A;
+          menuData.B = parsed.lanes.B;
+          menuData.C = parsed.lanes.C;
+          
+          document.getElementById('ai-tuning-prompt').value = '';
+          renderActiveLaneMenu();
+        }
+      } catch (error) {
+        handleError(error);
+      } finally {
+        hideLoading();
+      }
+    }
+
+    async function generateCoachingGuide() {
+      showLoading("合同指導案を作成中...", "メニュー全体の意図を抽出し、コーチ向けメモを整理しています");
+
+      const prompt = `
+        あなたは競泳クラブのヘッドコーチ（監督）です。
+        今回作成されたA、B、C各レーンの練習メニューを元に、本日アシスタントコーチ陣が指導にあたる際の「合同指導案」と、プールサイドのホワイトボードに書くべき「選手向けホワイトボードサマリー」を作成してください。
+
+        【練習メニュー】
+        Aレーン: ${JSON.stringify(menuData.A)}
+        Bレーン: ${JSON.stringify(menuData.B)}
+        Cレーン: ${JSON.stringify(menuData.C)}
+
+        【出力形式】
+        マークダウン等の修飾は避け、プレーンテキストで、以下の見出しを使って構成してください。
+
+        ■ 全レーン合同指導の狙い
+        (全体の練習目的、各レーンで一貫して指導すべき技術テーマ)
+
+        ■ コーチ陣の役割・配置ポイント
+        (メイン練習などで、複数のレーンをどうやって観察・計測・声掛けすべきか)
+
+        ■ 選手向けホワイトボードの要約
+        (ホワイトボードの隅に書く、本日最も大切にしてほしいワンフレーズや注意点)
+      `;
+
+      try {
+        const guideText = await callGeminiApi(prompt, false);
+        
+        const box = document.getElementById('coaching-guide-box');
+        box.className = "bg-slate-900/50 rounded-2xl p-5 border border-slate-800 text-slate-300 text-sm leading-relaxed text-left whitespace-pre-line";
+        box.textContent = guideText;
+
+        document.getElementById('print-coaching-guide').textContent = guideText;
+
+      } catch (error) {
+        handleError(error);
+      } finally {
+        hideLoading();
+      }
+    }
+
+    function escapeHtml(str) {
+      if (typeof str !== 'string') return '';
+      return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+  </script>
+</body>
+</html>
