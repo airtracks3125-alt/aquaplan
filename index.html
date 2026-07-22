@@ -1,0 +1,981 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AquaPlan Pro v4.0 - 競泳コーチ専用Command Center</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Noto+Sans+JP:wght@300;400;500;700;900&display=swap');
+body { font-family: 'Inter', 'Noto Sans JP', sans-serif; }
+
+.lane-card-inactive {
+  opacity: 0.45;
+  filter: grayscale(40%);
+  transition: all 0.3s ease;
+}
+.lane-card-active {
+  opacity: 1;
+  filter: none;
+  transition: all 0.3s ease;
+}
+
+/* AI生成時等のローディングスケルトン用アニメーション */
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.6; filter: brightness(1); }
+  50% { opacity: 1; filter: brightness(1.2); }
+}
+.ai-loading-glow {
+  animation: pulse-glow 1.5s infinite ease-in-out;
+}
+
+/* カスタムスクロールバー */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #0f172a;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 3px;
+}
+
+@media print {
+  /* 印刷時、画面表示用のエリアを完全に非表示にして、後半の印刷専用シートのみを出力 */
+  body > *:not(.print-only) {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important;
+  }
+
+  body {
+    background-color: white !important;
+    color: black !important;
+    display: block !important;
+    height: auto !important;
+    min-height: 0 !important;
+    font-size: 14px !important;
+  }
+
+  /* 各メニューをA4用紙1枚ずつにすっきり独立させて改ページする（重ね合わせを防止） */
+  .print-card {
+    border: 3px solid #000 !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    page-break-after: always !important;
+    break-after: page !important;
+    margin-bottom: 0 !important;
+    padding: 1.75rem !important;
+    border-radius: 8px !important;
+    box-sizing: border-box !important;
+    background: white !important;
+  }
+
+  /* 最後の要素だけは後ろに余分な空白ページを作らないようにする */
+  .print-card:last-child {
+    page-break-after: auto !important;
+    break-after: auto !important;
+  }
+
+  table {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+  tr {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+}
+</style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col">
+
+<!-- ヘッダー -->
+<header class="bg-slate-950 border-b border-slate-800 text-white shadow-md no-print sticky top-0 z-40">
+<div class="max-w-7xl mx-auto px-4 py-3 flex flex-col sm:flex-row justify-between items-center gap-4">
+  <div class="flex items-center gap-3">
+    <div class="bg-blue-600 p-2 rounded-xl shadow-lg shadow-blue-500/20">
+      <i data-lucide="award" class="w-7 h-7 text-white"></i>
+    </div>
+    <div>
+      <h1 class="text-xl font-black tracking-wider flex items-center gap-2">
+        AquaPlan <span class="text-blue-400 font-extrabold">PRO v4.0</span>
+        <span class="text-[9px] bg-indigo-500 text-white px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
+          <i data-lucide="sparkles" class="w-2.5 h-2.5"></i> Gemini AI Combined
+        </span>
+      </h1>
+      <p class="text-[10px] text-slate-400">競泳コーチ専用 マルチレーン練習メニュー生成システム（プロフェッショナル仕様）</p>
+    </div>
+  </div>
+  <div class="flex items-center gap-3">
+    <button onclick="switchTab('dashboard')" id="btn-tab-dashboard" class="px-4 py-2 rounded-lg bg-blue-600/20 border border-blue-500/30 text-blue-400 font-bold text-xs tracking-wider transition-all">
+      Command Center (一括作成)
+    </button>
+    <button onclick="switchTab('saved')" id="btn-tab-saved" class="px-4 py-2 rounded-lg hover:bg-slate-800 text-slate-400 font-semibold text-xs tracking-wider transition-all flex items-center gap-1.5 border border-transparent">
+      <i data-lucide="folder-heart" class="w-4 h-4"></i>保存アーカイブ
+    </button>
+  </div>
+</div>
+</header>
+
+<!-- メインコンテンツ -->
+<main class="flex-grow max-w-7xl w-full mx-auto p-4 md:p-6 space-y-6">
+
+<div id="tab-dashboard" class="space-y-6">
+
+  <!-- コーチ設定パネル -->
+  <div class="bg-slate-950 rounded-2xl border border-slate-800 shadow-xl p-5 md:p-6 no-print">
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 pb-4 border-b border-slate-800">
+      <div>
+        <h2 class="text-lg font-bold text-white flex items-center gap-2">
+          <i data-lucide="sliders-horizontal" class="w-5 h-5 text-blue-500"></i>
+          練習条件・レーン別フォーカス設定
+        </h2>
+        <p class="text-xs text-slate-400 mt-1">※長水路・短水路の整合、総距離に応じたロングレップ(200/400/800m)、SKPSや各種練習形式が自動配置されます。</p>
+      </div>
+      <div class="flex gap-2 w-full md:w-auto">
+        <button onclick="autoFillPreset('speed')" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg font-bold transition-all flex items-center gap-1"><i data-lucide="zap" class="w-3.5 h-3.5 text-amber-400"></i>スプリント (Sprint)</button>
+        <button onclick="autoFillPreset('distance')" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg font-bold transition-all flex items-center gap-1"><i data-lucide="compass" class="w-3.5 h-3.5 text-emerald-400"></i>ディスタンス (Distance)</button>
+        <button onclick="autoFillPreset('balanced')" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg font-bold transition-all flex items-center gap-1"><i data-lucide="scale" class="w-3.5 h-3.5 text-cyan-400"></i>バランス (Balance)</button>
+      </div>
+    </div>
+
+    <!-- 3つのグループの設定フォーム -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+      <!-- グループ A (選抜) -->
+      <div id="card-gA" class="bg-slate-900 rounded-xl border border-blue-500/20 p-4 space-y-4 relative lane-card-active">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2 w-full">
+            <span class="w-3 h-3 rounded-full bg-blue-500"></span>
+            <input type="text" id="gA-name" value="Aレーン (選手選抜)" class="bg-transparent border-b border-slate-700 focus:border-blue-500 text-sm font-bold text-white outline-none w-full py-0.5">
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3 text-xs">
+          <div>
+            <label class="block text-slate-400 mb-1">目標距離</label>
+            <select id="gA-dist" class="w-full bg-slate-800 border border-slate-700 rounded p-1.5 font-bold text-slate-200">
+              <option value="2000">2000m</option>
+              <option value="3000">3000m</option>
+              <option value="4000" selected>4000m</option>
+              <option value="5000">5000m</option>
+              <option value="6000">6000m</option>
+              <option value="8000">8000m</option>
+              <option value="10000">10000m</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-slate-400 mb-1">特化種目</label>
+            <select id="gA-style" class="w-full bg-slate-800 border border-slate-700 rounded p-1.5 font-bold text-blue-400">
+              <option value="none" selected>指定しない (ランダム)</option>
+              <option value="Fr">自由形 (Fr)</option>
+              <option value="IM">個人メドレー (IM)</option>
+              <option value="Fly">バタフライ (Fly)</option>
+              <option value="Ba">背泳ぎ (Ba)</option>
+              <option value="Br">平泳ぎ (Br)</option>
+            </select>
+          </div>
+          <div class="col-span-2">
+            <label class="block text-slate-400 mb-1">100mベースタイム目安</label>
+            <input type="text" id="gA-pace" value="1:15" class="w-full bg-slate-800 border border-slate-700 rounded p-1.5 font-mono font-bold text-white text-center">
+          </div>
+        </div>
+        <div class="flex gap-2 pt-1 justify-between items-center border-t border-slate-800/60">
+          <label class="flex items-center gap-1.5 text-xs text-slate-300 cursor-pointer flex-grow">
+            <input type="checkbox" id="gA-active" checked onchange="toggleLaneActiveState('gA')" class="rounded border-slate-700 text-blue-500 bg-slate-800">
+            出力を有効化
+          </label>
+          <button onclick="generateRandomMenu('gA')" class="text-[10px] bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-300 border border-indigo-500/30 px-2.5 py-1 rounded font-bold transition-all flex items-center gap-1">
+            <i data-lucide="dices" class="w-3.5 h-3.5"></i>完全ランダム
+          </button>
+        </div>
+      </div>
+
+      <!-- グループ B (中級・育成) -->
+      <div id="card-gB" class="bg-slate-900 rounded-xl border border-cyan-500/20 p-4 space-y-4 relative lane-card-active">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2 w-full">
+            <span class="w-3 h-3 rounded-full bg-cyan-500"></span>
+            <input type="text" id="gB-name" value="Bレーン (中級・育成)" class="bg-transparent border-b border-slate-700 focus:border-cyan-500 text-sm font-bold text-white outline-none w-full py-0.5">
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3 text-xs">
+          <div>
+            <label class="block text-slate-400 mb-1">目標距離</label>
+            <select id="gB-dist" class="w-full bg-slate-800 border border-slate-700 rounded p-1.5 font-bold text-slate-200">
+              <option value="1500">1500m</option>
+              <option value="2000">2000m</option>
+              <option value="3000" selected>3000m</option>
+              <option value="4000">4000m</option>
+              <option value="5000">5000m</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-slate-400 mb-1">特化種目</label>
+            <select id="gB-style" class="w-full bg-slate-800 border border-slate-700 rounded p-1.5 font-bold text-cyan-400">
+              <option value="none">指定しない (ランダム)</option>
+              <option value="Fr">自由形 (Fr)</option>
+              <option value="IM" selected>個人メドレー (IM)</option>
+              <option value="Fly">バタフライ (Fly)</option>
+              <option value="Ba">背泳ぎ (Ba)</option>
+              <option value="Br">平泳ぎ (Br)</option>
+            </select>
+          </div>
+          <div class="col-span-2">
+            <label class="block text-slate-400 mb-1">100mベースタイム目安</label>
+            <input type="text" id="gB-pace" value="1:40" class="w-full bg-slate-800 border border-slate-700 rounded p-1.5 font-mono font-bold text-white text-center">
+          </div>
+        </div>
+        <div class="flex gap-2 pt-1 justify-between items-center border-t border-slate-800/60">
+          <label class="flex items-center gap-1.5 text-xs text-slate-300 cursor-pointer flex-grow">
+            <input type="checkbox" id="gB-active" checked onchange="toggleLaneActiveState('gB')" class="rounded border-slate-700 text-cyan-500 bg-slate-800">
+            出力を有効化
+          </label>
+          <button onclick="generateRandomMenu('gB')" class="text-[10px] bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-300 border border-indigo-500/30 px-2.5 py-1 rounded font-bold transition-all flex items-center gap-1">
+            <i data-lucide="dices" class="w-3.5 h-3.5"></i>完全ランダム
+          </button>
+        </div>
+      </div>
+
+      <!-- グループ C (初級・ジュニア) -->
+      <div id="card-gC" class="bg-slate-900 rounded-xl border border-emerald-500/20 p-4 space-y-4 relative lane-card-active">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2 w-full">
+            <span class="w-3 h-3 rounded-full bg-emerald-500"></span>
+            <input type="text" id="gC-name" value="Cレーン (初級・ジュニア)" class="bg-transparent border-b border-slate-700 focus:border-emerald-500 text-sm font-bold text-white outline-none w-full py-0.5">
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3 text-xs">
+          <div>
+            <label class="block text-slate-400 mb-1">目標距離</label>
+            <select id="gC-dist" class="w-full bg-slate-800 border border-slate-700 rounded p-1.5 font-bold text-slate-200">
+              <option value="800">800m</option>
+              <option value="1200" selected>1200m</option>
+              <option value="1500">1500m</option>
+              <option value="2000">2000m</option>
+              <option value="3000">3000m</option>
+              <option value="5000">5000m</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-slate-400 mb-1">特化種目</label>
+            <select id="gC-style" class="w-full bg-slate-800 border border-slate-700 rounded p-1.5 font-bold text-emerald-400">
+              <option value="none">指定しない (ランダム)</option>
+              <option value="Fr" selected>自由形 (Fr)</option>
+              <option value="IM">個人メドレー (IM)</option>
+              <option value="Fly">バタフライ (Fly)</option>
+              <option value="Ba">背泳ぎ (Ba)</option>
+              <option value="Br">平泳ぎ (Br)</option>
+            </select>
+          </div>
+          <div class="col-span-2">
+            <label class="block text-slate-400 mb-1">100mベースタイム目安</label>
+            <input type="text" id="gC-pace" value="2:15" class="w-full bg-slate-800 border border-slate-700 rounded p-1.5 font-mono font-bold text-white text-center">
+          </div>
+        </div>
+        <div class="flex gap-2 pt-1 justify-between items-center border-t border-slate-800/60">
+          <label class="flex items-center gap-1.5 text-xs text-slate-300 cursor-pointer flex-grow">
+            <input type="checkbox" id="gC-active" checked onchange="toggleLaneActiveState('gC')" class="rounded border-slate-700 text-emerald-500 bg-slate-800">
+            出力を有効化
+          </label>
+          <button onclick="generateRandomMenu('gC')" class="text-[10px] bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-300 border border-indigo-500/30 px-2.5 py-1 rounded font-bold transition-all flex items-center gap-1">
+            <i data-lucide="dices" class="w-3.5 h-3.5"></i>完全ランダム
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- プールプール長・仕様 -->
+    <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+      <!-- 比率設定 -->
+      <div class="p-4 bg-slate-900 rounded-xl border border-slate-800 space-y-4">
+        <div class="flex justify-between items-center">
+          <h3 class="text-xs font-bold text-slate-300 uppercase flex items-center gap-1.5">
+            <i data-lucide="blender" class="w-4 h-4 text-pink-500"></i>
+            ハイブリッド配分比率設定
+          </h3>
+          <span id="ratio-total" class="text-xs font-black bg-pink-500/20 text-pink-400 px-2 py-0.5 rounded border border-pink-500/30">配合合計: 100%</span>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-1">
+          <div class="space-y-1.5">
+            <div class="flex justify-between text-xs font-bold">
+              <span class="text-emerald-400">持久力 (Aerobic)</span>
+              <span id="val-aerobic" class="text-slate-300">40%</span>
+            </div>
+            <input type="range" id="slide-aerobic" min="0" max="100" value="40" oninput="adjustRatios('aerobic')" class="w-full h-1.5 bg-slate-800 rounded appearance-none cursor-pointer accent-emerald-500">
+          </div>
+          <div class="space-y-1.5">
+            <div class="flex justify-between text-xs font-bold">
+              <span class="text-amber-400">スピード (Speed)</span>
+              <span id="val-speed" class="text-slate-300">30%</span>
+            </div>
+            <input type="range" id="slide-speed" min="0" max="100" value="30" oninput="adjustRatios('speed')" class="w-full h-1.5 bg-slate-800 rounded appearance-none cursor-pointer accent-amber-500">
+          </div>
+          <div class="space-y-1.5">
+            <div class="flex justify-between text-xs font-bold">
+              <span class="text-indigo-400">技術ドリル (Technique)</span>
+              <span id="val-tech" class="text-slate-300">30%</span>
+            </div>
+            <input type="range" id="slide-tech" min="0" max="100" value="30" oninput="adjustRatios('tech')" class="w-full h-1.5 bg-slate-800 rounded appearance-none cursor-pointer accent-indigo-500">
+          </div>
+        </div>
+      </div>
+
+      <!-- プール水路 & 整合条件 -->
+      <div class="p-4 bg-slate-900 rounded-xl border border-slate-800 flex flex-col justify-between gap-4">
+        <div>
+          <h3 class="text-xs font-bold text-slate-300 uppercase flex items-center gap-1.5 mb-2">
+            <i data-lucide="info" class="w-4 h-4 text-cyan-400"></i>
+            プール設定・レップルール
+          </h3>
+          <p class="text-[11px] text-slate-400">
+            長水路プールが設定された場合、1本あたりの距離が50mの倍数（25mや75mが自動排除）になるようにシステムが徹底調整します。
+          </p>
+        </div>
+        <div class="grid grid-cols-2 gap-3 text-xs">
+          <div>
+            <label class="block text-slate-500 mb-1 font-bold">プール水路区分</label>
+            <select id="pool-length" class="w-full bg-slate-800 border border-slate-700 rounded p-2 font-bold text-slate-200">
+              <option value="25" selected>短水路 (25mプール)</option>
+              <option value="50">長水路 (50mプール)</option>
+            </select>
+          </div>
+          <div class="flex items-end">
+            <div class="bg-slate-950 p-2 border border-slate-800 rounded text-[10px] text-slate-400 w-full text-center">
+              ロングレップ自動判定対応
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 決定バー -->
+    <div class="mt-6 flex flex-col sm:flex-row justify-between items-center gap-4 pt-4 border-t border-slate-800">
+      <div class="flex items-center gap-3 text-xs text-slate-400">
+        <i data-lucide="help-circle" class="w-4 h-4 text-blue-400"></i>
+        <span>生成後のメニューの項目は、直接クリックして「1x400m SKPS」「Descending」など自由に変更・追加できます。</span>
+      </div>
+      <button onclick="generateMultiMenu()" class="w-full sm:w-auto px-8 py-3.5 bg-gradient-to-r from-blue-600 to-cyan-500 text-white font-extrabold text-sm rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 hover:brightness-110">
+        <i data-lucide="sparkles" class="w-5 h-5"></i>
+        最適化メニューを一括生成
+      </button>
+    </div>
+  </div>
+
+  <!-- ✨ Gemini AI インテリジェント・コーチアシスタントパネル -->
+  <div class="bg-gradient-to-br from-indigo-950 via-slate-950 to-blue-950 rounded-2xl border border-indigo-500/30 p-5 md:p-6 shadow-2xl no-print relative overflow-hidden">
+    <div class="absolute -top-10 -right-10 w-40 h-40 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none"></div>
+    <div class="absolute -bottom-10 -left-10 w-40 h-40 bg-blue-500/10 rounded-full blur-2xl pointer-events-none"></div>
+
+    <div class="flex items-center gap-2 mb-4">
+      <div class="bg-indigo-600/30 p-1.5 rounded-lg border border-indigo-500/40">
+        <i data-lucide="sparkles" class="w-5 h-5 text-indigo-400 animate-pulse"></i>
+      </div>
+      <div>
+        <h2 class="text-sm font-extrabold text-indigo-200 tracking-wider uppercase flex items-center gap-1">
+          ✨ Gemini AI インテリジェント・コーチアシスタント
+        </h2>
+        <p class="text-[10px] text-slate-400">自然な言葉で、現在の練習プラン全体をリアルタイムに書き換え・戦略立案させることができます。</p>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+      <!-- チューニング入力 -->
+      <div class="lg:col-span-8 space-y-2">
+        <label class="block text-xs font-bold text-indigo-300">✨ AI メニューチューニング指示</label>
+        <div class="relative">
+          <input type="text" id="ai-tuner-prompt" placeholder="例: 「全体的に大会1週間前なので、持久・高強度パートのボリュームを25%減らして」「Aレーンのメインをバタフライ強化仕様にして」" class="w-full bg-slate-900 border border-indigo-500/30 rounded-xl px-4 py-3 text-xs text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 pr-10">
+          <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+            <i data-lucide="wand-2" class="w-4 h-4 text-indigo-400"></i>
+          </div>
+        </div>
+        <!-- クイックプロンプトチップ -->
+        <div class="flex flex-wrap gap-1.5">
+          <span class="text-[10px] text-slate-400">クイック選択:</span>
+          <button onclick="applyQuickAiPrompt('全体的に大会直前のテーパリング（調整）用に距離を25%削減して')" class="text-[9px] bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-0.5 rounded border border-slate-700">✂️ 距離を25%落とす</button>
+          <button onclick="applyQuickAiPrompt('AレーンとBレーンのメインセットを個人メドレー(IM)強化用に変更して')" class="text-[9px] bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-0.5 rounded border border-slate-700">🏊‍♂️ IM強化に変更</button>
+          <button onclick="applyQuickAiPrompt('すべてのレーンのインターバルサークルを、疲労回復重視で10秒ずつ延ばして')" class="text-[9px] bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-0.5 rounded border border-slate-700">⏱️ サークルを10秒延ばす</button>
+        </div>
+      </div>
+
+      <!-- アクション実行部 -->
+      <div class="lg:col-span-4 flex flex-col justify-end gap-2 pt-2 lg:pt-0">
+        <button id="btn-ai-tune" onclick="tuneMenuWithAi()" class="w-full py-3 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white font-extrabold text-xs rounded-xl shadow-lg shadow-indigo-500/10 flex items-center justify-center gap-2 transition-all">
+          <i data-lucide="sparkles" class="w-4 h-4"></i> ✨ AIメニューをチューニング
+        </button>
+        <button id="btn-ai-strategy" onclick="generateAiStrategy()" class="w-full py-2.5 bg-slate-900 border border-indigo-500/40 hover:bg-slate-800 text-indigo-300 font-extrabold text-xs rounded-xl flex items-center justify-center gap-2 transition-all">
+          <i data-lucide="brain" class="w-4 h-4"></i> ✨ AI合同指導案・ホワイトボード要約作成
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- メニュー表示コンテナ -->
+  <div id="multi-menu-container" class="hidden space-y-4">
+    <div class="flex flex-wrap justify-between items-center gap-3 bg-slate-950 p-4 rounded-xl border border-slate-800 no-print">
+      <span class="text-xs text-amber-400 bg-amber-500/10 px-3 py-1 rounded border border-amber-500/20 flex items-center gap-1.5">
+        <i data-lucide="edit-3" class="w-3.5 h-3.5"></i> 各数値を直接クリックして、文字やサークルを自由にリアルタイム修正・追加できます
+      </span>
+      <div class="flex gap-2">
+        <button onclick="saveAllActiveMenus()" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 px-4 py-2 rounded-lg font-bold flex items-center gap-1"><i data-lucide="bookmark-plus" class="w-4 h-4"></i> 保存</button>
+        <button onclick="copyAllActiveMenus()" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 px-4 py-2 rounded-lg font-bold flex items-center gap-1"><i data-lucide="copy" class="w-4 h-4"></i> コピー</button>
+        <button onclick="printMultiLayout()" class="text-xs bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold flex items-center gap-1"><i data-lucide="printer" class="w-4 h-4"></i> 印刷用表示</button>
+      </div>
+    </div>
+
+    <div id="lanes-grid" class="grid grid-cols-1 xl:grid-cols-3 gap-6"></div>
+  </div>
+</div>
+
+<!-- 保存アーカイブ -->
+<div id="tab-saved" class="hidden bg-slate-950 rounded-2xl border border-slate-800 p-6">
+  <div class="flex justify-between items-center mb-6">
+    <h2 class="text-lg font-bold text-white flex items-center gap-2"><i data-lucide="folder-heart" class="w-5 h-5"></i>保存アーカイブ</h2>
+    <button onclick="clearAllSaved()" class="text-xs text-red-400 bg-red-500/10 px-3 py-1.5 rounded-lg border border-red-500/20">全て削除</button>
+  </div>
+  <div id="saved-list-container" class="grid grid-cols-1 md:grid-cols-3 gap-4"></div>
+</div>
+
+</main>
+
+<!-- ✨ AI指導案・ホワイトボード要約用カスタムモーダル -->
+<div id="ai-strategy-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden no-print">
+  <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-2xl w-full overflow-hidden shadow-2xl flex flex-col max-h-[85vh]">
+    <div class="bg-slate-950 p-4 border-b border-slate-800 flex justify-between items-center flex-shrink-0">
+      <h3 class="text-sm font-black text-slate-200 flex items-center gap-2">
+        <i data-lucide="sparkles" class="w-4 h-4 text-indigo-400 animate-pulse"></i>
+        ✨ AI 合同指導案・ホワイトボード戦略メモ
+      </h3>
+      <button onclick="closeAiStrategyModal()" class="text-slate-400 hover:text-white transition-all">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+    </div>
+    <div class="p-6 overflow-y-auto space-y-4 custom-scrollbar text-xs" id="ai-strategy-content">
+      <!-- AI生成テキストがここに注入されます -->
+    </div>
+    <div class="bg-slate-950 p-4 border-t border-slate-800 flex justify-end gap-2 flex-shrink-0">
+      <button onclick="copyAiStrategyText()" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 px-4 py-2 rounded-lg font-bold flex items-center gap-1.5">
+        <i data-lucide="copy" class="w-4 h-4"></i> クリップボードにコピー
+      </button>
+      <button onclick="closeAiStrategyModal()" class="text-xs bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold">
+        閉じる
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- 印刷専用（後半のデザインシートのみを印字） -->
+<div class="print-only hidden p-4 bg-white text-black min-h-screen">
+  <div class="flex justify-between items-center border-b-4 border-black pb-2 mb-4">
+    <h1 class="text-2xl font-black">AquaPlan SWIM SHEET</h1>
+    <span id="print-sheet-date" class="text-sm font-bold text-gray-700"></span>
+  </div>
+  <div id="print-lanes-container" class="space-y-6"></div>
+</div>
+
+<script>
+let generatedActiveGroups = [];
+
+// 技術課題ドリル・スタート・ターン
+const drillPool = [
+  { name: "片手スイム (右/左交互)", desc: "ストロークのエントリー位置とキャッチ時の水の引っかかりを確認。" },
+  { name: "フロント・スカーリング", desc: "インスウィップ・アウトスウィップで手の平のキャッチ感覚を研ぎ澄ます。" },
+  { name: "サイドキック (体側姿勢)", desc: "完全に横を向いた状態で軸をキープ。ローリング時の安定姿勢を作る。" },
+  { name: "フィストスイム (握り拳)", desc: "拳を握ることで、手の平ではなく前腕全体で水を押さえる感覚を養う。" },
+  { name: "ダイブ練習 (Dive & Dash)", desc: "スタート台からの爆発的跳び出し、空中姿勢、浮き上がりから15mMAXスピードの連動。" },
+  { name: "ターン練習 (Turn & Push)", desc: "壁前5mでのスピード維持、クイックターン、強力な壁キック、バサロ/ドルフィンキックの移行。" },
+  { name: "ディレード・キック", desc: "手を前に残した状態で3回キックを入れてから次のストロークを始動。" }
+];
+
+const stylePool = ["Choice", "Style 1", "Fr", "IM", "IM Order", "IM Switch"];
+
+// 初期化
+window.addEventListener('DOMContentLoaded', () => {
+  if (window.lucide) lucide.createIcons();
+  loadSavedArchive();
+});
+
+// タブ切り替え
+function switchTab(tab) {
+  const dash = document.getElementById('tab-dashboard');
+  const saved = document.getElementById('tab-saved');
+  const btnDash = document.getElementById('btn-tab-dashboard');
+  const btnSaved = document.getElementById('btn-tab-saved');
+
+  if (tab === 'dashboard') {
+    dash.classList.remove('hidden');
+    saved.classList.add('hidden');
+    btnDash.className = "px-4 py-2 rounded-lg bg-blue-600/20 border border-blue-500/30 text-blue-400 font-bold text-xs tracking-wider transition-all";
+    btnSaved.className = "px-4 py-2 rounded-lg hover:bg-slate-800 text-slate-400 font-semibold text-xs tracking-wider transition-all flex items-center gap-1.5 border border-transparent";
+  } else {
+    dash.classList.add('hidden');
+    saved.classList.remove('hidden');
+    btnSaved.className = "px-4 py-2 rounded-lg bg-blue-600/20 border border-blue-500/30 text-blue-400 font-bold text-xs tracking-wider transition-all flex items-center gap-1.5";
+    btnDash.className = "px-4 py-2 rounded-lg hover:bg-slate-800 text-slate-400 font-semibold text-xs tracking-wider transition-all border border-transparent";
+    loadSavedArchive();
+  }
+}
+
+// 出力有効化（有効/無効）の視覚効果切り替え
+function toggleLaneActiveState(laneId) {
+  const checkbox = document.getElementById(`${laneId}-active`);
+  const card = document.getElementById(`card-${laneId}`);
+  if (checkbox.checked) {
+    card.className = "bg-slate-900 rounded-xl border border-blue-500/20 p-4 space-y-4 relative lane-card-active";
+  } else {
+    card.className = "bg-slate-900 rounded-xl border border-blue-500/10 p-4 space-y-4 relative lane-card-inactive";
+  }
+}
+
+function getRandomStyle(configuredStyle) {
+  if (!configuredStyle || configuredStyle === "none") {
+    return stylePool[Math.floor(Math.random() * stylePool.length)];
+  }
+  if (Math.random() < 0.25) {
+    return stylePool[Math.floor(Math.random() * 2)]; // 25%でChoiceかStyle 1を混ぜる
+  }
+  return configuredStyle;
+}
+
+// ハイブリッド比率のスライダー調整（合計100%制御）
+function adjustRatios(changed) {
+  let a = parseInt(document.getElementById('slide-aerobic').value) || 0;
+  let s = parseInt(document.getElementById('slide-speed').value) || 0;
+  let t = parseInt(document.getElementById('slide-tech').value) || 0;
+
+  if (changed === 'aerobic') {
+    let rem = 100 - a;
+    let sumST = s + t || 1;
+    s = Math.round(rem * (s / sumST));
+    t = rem - s;
+  } else if (changed === 'speed') {
+    let rem = 100 - s;
+    let sumAT = a + t || 1;
+    a = Math.round(rem * (a / sumAT));
+    t = rem - a;
+  } else if (changed === 'tech') {
+    let rem = 100 - t;
+    let sumAS = a + s || 1;
+    a = Math.round(rem * (a / sumAS));
+    s = rem - a;
+  }
+
+  document.getElementById('slide-aerobic').value = a;
+  document.getElementById('slide-speed').value = s;
+  document.getElementById('slide-tech').value = t;
+
+  document.getElementById('val-aerobic').innerText = a + '%';
+  document.getElementById('val-speed').innerText = s + '%';
+  document.getElementById('val-tech').innerText = t + '%';
+}
+
+// プリセット適用
+function autoFillPreset(preset) {
+  if (preset === 'speed') {
+    document.getElementById('slide-aerobic').value = 20;
+    document.getElementById('slide-speed').value = 50;
+    document.getElementById('slide-tech').value = 30;
+  } else if (preset === 'distance') {
+    document.getElementById('slide-aerobic').value = 60;
+    document.getElementById('slide-speed').value = 20;
+    document.getElementById('slide-tech').value = 20;
+  } else {
+    document.getElementById('slide-aerobic').value = 40;
+    document.getElementById('slide-speed').value = 30;
+    document.getElementById('slide-tech').value = 30;
+  }
+  adjustRatios('aerobic');
+}
+
+// 時間フォーマット変換 (秒 -> mm:ss)
+function formatSeconds(sec) {
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return `${m}:${s < 10 ? '0' : ''}${s}`;
+}
+
+// ベースタイム文字列 (1:15 など) を秒数に変換
+function parsePaceToSeconds(paceStr) {
+  if (!paceStr) return 75;
+  const parts = paceStr.split(':');
+  if (parts.length === 2) {
+    return (parseInt(parts[0]) || 0) * 60 + (parseInt(parts[1]) || 0);
+  }
+  return parseInt(paceStr) || 75;
+}
+
+// メニュー生成ロジック
+function buildSingleLaneMenu(laneKey) {
+  const name = document.getElementById(`${laneKey}-name`).value;
+  const targetDist = parseInt(document.getElementById(`${laneKey}-dist`).value);
+  const prefStyle = document.getElementById(`${laneKey}-style`).value;
+  const paceSec = parsePaceToSeconds(document.getElementById(`${laneKey}-pace`).value);
+  const poolLen = parseInt(document.getElementById('pool-length').value);
+
+  const rAero = parseInt(document.getElementById('slide-aerobic').value) / 100;
+  const rSpeed = parseInt(document.getElementById('slide-speed').value) / 100;
+
+  // W-Up
+  const wUpDist = Math.max(poolLen * 4, Math.round((targetDist * 0.1) / (poolLen * 2)) * (poolLen * 2));
+  const items = [
+    { cat: "W-Up", setInfo: `1 x ${wUpDist}m`, style: "Choice", desc: "Easy, フォームと心拍数の引き上げ", circle: formatSeconds(Math.round(wUpDist * (paceSec / 100) + 60)), dist: wUpDist }
+  ];
+
+  let currentDist = wUpDist;
+
+  // Drill
+  const drillDistUnit = poolLen * 2;
+  const drillReps = 4;
+  const drillTotal = drillDistUnit * drillReps;
+  const selDrill = drillPool[Math.floor(Math.random() * drillPool.length)];
+  const drillCircle = formatSeconds(Math.round(drillDistUnit * (paceSec / 100) + 15));
+  items.push({ cat: "Drill", setInfo: `${drillReps} x ${drillDistUnit}m`, style: "Drill", desc: `${selDrill.name} (${selDrill.desc})`, circle: drillCircle, dist: drillTotal });
+  currentDist += drillTotal;
+
+  // Kick / Pull / Main 計算のための残り距離
+  const remDist = Math.max(0, targetDist - currentDist - (poolLen * 4)); // C-Down分確保
+  const mainDistTarget = Math.round((remDist * (rAero + rSpeed * 0.5)) / (poolLen * 2)) * (poolLen * 2);
+  const subDistTarget = Math.max(0, remDist - mainDistTarget);
+
+  // Kick
+  const kickUnit = poolLen * 2;
+  const kickReps = Math.max(2, Math.floor((subDistTarget * 0.5) / kickUnit));
+  const kickTotal = kickUnit * kickReps;
+  if (kickTotal > 0) {
+    items.push({ cat: "Kick", setInfo: `${kickReps} x ${kickUnit}m`, style: getRandomStyle(prefStyle), desc: "ボードキック, 軸とキックの出力を維持", circle: formatSeconds(Math.round(kickUnit * (paceSec / 100) + 20)), dist: kickTotal });
+    currentDist += kickTotal;
+  }
+
+  // Pull
+  const pullUnit = poolLen * 2;
+  const pullReps = Math.max(2, Math.floor((subDistTarget * 0.5) / pullUnit));
+  const pullTotal = pullUnit * pullReps;
+  if (pullTotal > 0) {
+    items.push({ cat: "Pull", setInfo: `${pullReps} x ${pullUnit}m`, style: "Fr/Choice", desc: "パドル・ブイ使用, ハイキャッチを意識", circle: formatSeconds(Math.round(pullUnit * (paceSec / 100) + 10)), dist: pullTotal });
+    currentDist += pullTotal;
+  }
+
+  // Main
+  const mainRem = Math.max(poolLen * 4, targetDist - currentDist - (poolLen * 4));
+  let repDist = poolLen * 2;
+  if (mainRem >= 1600 && poolLen === 50) repDist = 100;
+  if (mainRem >= 2000) repDist = 200;
+
+  const mainReps = Math.max(1, Math.floor(mainRem / repDist));
+  const mainTotal = mainReps * repDist;
+  const mainCircleSec = Math.round(repDist * (paceSec / 100) + (rSpeed > 0.4 ? 20 : 10));
+
+  items.push({
+    cat: "Main",
+    setInfo: `${mainReps} x ${repDist}m`,
+    style: getRandomStyle(prefStyle),
+    desc: rSpeed > 0.4 ? "High Pace / Descending (ビルドアップ)" : "Hard / Pace Hold (イーブンペース維持)",
+    circle: formatSeconds(mainCircleSec),
+    dist: mainTotal
+  });
+  currentDist += mainTotal;
+
+  // C-Down
+  const cDownDist = Math.max(poolLen * 2, targetDist - currentDist);
+  items.push({ cat: "C-Down", setInfo: `1 x ${cDownDist}m`, style: "Easy", desc: "リカバリー、クールダウン", circle: "-", dist: cDownDist });
+  currentDist += cDownDist;
+
+  return {
+    laneId: laneKey,
+    title: name,
+    totalDist: currentDist,
+    pace: document.getElementById(`${laneKey}-pace`).value,
+    items: items
+  };
+}
+
+// 一括生成
+function generateMultiMenu() {
+  generatedActiveGroups = [];
+  ['gA', 'gB', 'gC'].forEach(laneKey => {
+    if (document.getElementById(`${laneKey}-active`).checked) {
+      generatedActiveGroups.push(buildSingleLaneMenu(laneKey));
+    }
+  });
+
+  renderLanesGrid();
+  document.getElementById('multi-menu-container').classList.remove('hidden');
+}
+
+// レーン単体ランダム生成
+function generateRandomMenu(laneKey) {
+  if (!document.getElementById(`${laneKey}-active`).checked) {
+    document.getElementById(`${laneKey}-active`).checked = true;
+    toggleLaneActiveState(laneKey);
+  }
+  const single = buildSingleLaneMenu(laneKey);
+  const idx = generatedActiveGroups.findIndex(g => g.laneId === laneKey);
+  if (idx >= 0) {
+    generatedActiveGroups[idx] = single;
+  } else {
+    generatedActiveGroups.push(single);
+  }
+  renderLanesGrid();
+  document.getElementById('multi-menu-container').classList.remove('hidden');
+}
+
+// UIレンダリング
+function renderLanesGrid() {
+  const grid = document.getElementById('lanes-grid');
+  grid.innerHTML = '';
+
+  generatedActiveGroups.forEach((group, gIdx) => {
+    const card = document.createElement('div');
+    card.className = "bg-slate-950 rounded-xl border border-slate-800 p-4 space-y-4 shadow-lg";
+
+    let rowsHtml = group.items.map((it, iIdx) => `
+      <tr class="border-b border-slate-800/60 hover:bg-slate-900/50 transition-all text-xs">
+        <td class="py-2 px-1 font-bold text-slate-400">${it.cat}</td>
+        <td class="py-2 px-1 font-extrabold text-blue-400 outline-none focus:bg-slate-800" contenteditable="true" onblur="updateItemValue(${gIdx}, ${iIdx}, 'setInfo', this.innerText)">${it.setInfo}</td>
+        <td class="py-2 px-1 font-bold text-cyan-300 outline-none focus:bg-slate-800" contenteditable="true" onblur="updateItemValue(${gIdx}, ${iIdx}, 'style', this.innerText)">${it.style}</td>
+        <td class="py-2 px-1 text-slate-300 text-[11px] outline-none focus:bg-slate-800" contenteditable="true" onblur="updateItemValue(${gIdx}, ${iIdx}, 'desc', this.innerText)">${it.desc}</td>
+        <td class="py-2 px-1 font-mono text-amber-400 font-bold outline-none focus:bg-slate-800" contenteditable="true" onblur="updateItemValue(${gIdx}, ${iIdx}, 'circle', this.innerText)">${it.circle}</td>
+        <td class="py-2 px-1 text-right font-mono text-slate-400">${it.dist}m</td>
+      </tr>
+    `).join('');
+
+    card.innerHTML = `
+      <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+        <div>
+          <h3 class="font-extrabold text-sm text-white flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
+            ${group.title}
+          </h3>
+          <p class="text-[10px] text-slate-400 mt-0.5">100m Base Pace: <span class="font-mono text-cyan-400">${group.pace}</span></p>
+        </div>
+        <div class="text-right">
+          <span class="text-xs font-black text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded border border-emerald-500/20">
+            Total: ${group.totalDist}m
+          </span>
+        </div>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="text-[10px] text-slate-500 uppercase border-b border-slate-800">
+              <th class="py-1">Cat</th>
+              <th class="py-1">Set</th>
+              <th class="py-1">Style</th>
+              <th class="py-1">Content</th>
+              <th class="py-1">Circle</th>
+              <th class="py-1 text-right">Dist</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rowsHtml}
+          </tbody>
+        </table>
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+
+  if (window.lucide) lucide.createIcons();
+}
+
+function updateItemValue(gIdx, iIdx, key, value) {
+  if (generatedActiveGroups[gIdx] && generatedActiveGroups[gIdx].items[iIdx]) {
+    generatedActiveGroups[gIdx].items[iIdx][key] = value;
+  }
+}
+
+// AIプロンプト適用
+function applyQuickAiPrompt(text) {
+  document.getElementById('ai-tuner-prompt').value = text;
+}
+
+// AIチューニング (シミュレーション)
+function tuneMenuWithAi() {
+  const prompt = document.getElementById('ai-tuner-prompt').value;
+  if (!prompt) {
+    alert("AIへの指示を入力してください。");
+    return;
+  }
+
+  const btn = document.getElementById('btn-ai-tune');
+  btn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> AI思考中...`;
+
+  setTimeout(() => {
+    generatedActiveGroups.forEach(group => {
+      group.items.forEach(it => {
+        if (prompt.includes("25%")) {
+          if (it.cat === "Main" || it.cat === "Kick") {
+            it.dist = Math.round(it.dist * 0.75);
+            it.setInfo = it.setInfo.replace(/\d+/, match => Math.max(1, Math.round(parseInt(match) * 0.75)));
+          }
+        }
+        if (prompt.includes("IM")) {
+          if (it.cat === "Main") it.style = "IM";
+        }
+        if (prompt.includes("10秒")) {
+          if (it.circle !== "-") {
+            const sec = parsePaceToSeconds(it.circle) + 10;
+            it.circle = formatSeconds(sec);
+          }
+        }
+      });
+      group.totalDist = group.items.reduce((acc, cur) => acc + cur.dist, 0);
+    });
+
+    renderLanesGrid();
+    btn.innerHTML = `<i data-lucide="sparkles" class="w-4 h-4"></i> ✨ AIメニューをチューニング`;
+    if (window.lucide) lucide.createIcons();
+  }, 1000);
+}
+
+// AI戦略要約モーダル生成
+function generateAiStrategy() {
+  const modal = document.getElementById('ai-strategy-modal');
+  const content = document.getElementById('ai-strategy-content');
+  
+  content.innerHTML = `
+    <div class="space-y-3">
+      <div class="p-3 bg-indigo-950/40 border border-indigo-500/30 rounded-xl">
+        <h4 class="font-bold text-indigo-300 flex items-center gap-1.5"><i data-lucide="target" class="w-4 h-4"></i> 本日の全体指導テーマ</h4>
+        <p class="text-slate-300 mt-1">「心肺機能の強化とキャッチ位置のブレ防止」。全レーン共通でメインセットではフォームの維持を徹底指導してください。</p>
+      </div>
+      <div class="p-3 bg-slate-950 border border-slate-800 rounded-xl space-y-2">
+        <h4 class="font-bold text-cyan-400">📋 ホワイトボード用サマリーメモ</h4>
+        <ul class="list-disc list-inside text-slate-300 space-y-1">
+          <li><strong>Aレーン:</strong> 高強度でのサークル維持（メインラスト2本追い込み）</li>
+          <li><strong>Bレーン:</strong> 個人メドレー切り替え時の種目間トランジション意識</li>
+          <li><strong>Cレーン:</strong> 抵抗の少ない姿勢（ストリームライン）のキープ</li>
+        </ul>
+      </div>
+    </div>
+  `;
+  modal.classList.remove('hidden');
+  if (window.lucide) lucide.createIcons();
+}
+
+function closeAiStrategyModal() {
+  document.getElementById('ai-strategy-modal').classList.add('hidden');
+}
+
+function copyAiStrategyText() {
+  const text = document.getElementById('ai-strategy-content').innerText;
+  navigator.clipboard.writeText(text);
+  alert("クリップボードにコピーしました！");
+}
+
+// 保存機能 (localStorage)
+function saveAllActiveMenus() {
+  if (generatedActiveGroups.length === 0) return;
+  const saved = JSON.parse(localStorage.getItem('aquaplan_saved') || '[]');
+  const entry = {
+    id: Date.now(),
+    date: new Date().toLocaleString('ja-JP'),
+    data: generatedActiveGroups
+  };
+  saved.unshift(entry);
+  localStorage.setItem('aquaplan_saved', JSON.stringify(saved));
+  alert("保存アーカイブに保存しました！");
+}
+
+function loadSavedArchive() {
+  const container = document.getElementById('saved-list-container');
+  const saved = JSON.parse(localStorage.getItem('aquaplan_saved') || '[]');
+
+  if (saved.length === 0) {
+    container.innerHTML = `<p class="text-xs text-slate-500 col-span-3 text-center py-8">保存されたメニューはありません。</p>`;
+    return;
+  }
+
+  container.innerHTML = saved.map(item => `
+    <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl space-y-3">
+      <div class="flex justify-between items-center text-xs">
+        <span class="font-bold text-indigo-400">${item.date}</span>
+        <button onclick="deleteSavedItem(${item.id})" class="text-red-400 hover:text-red-300"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+      </div>
+      <div class="text-xs text-slate-300 space-y-1">
+        ${item.data.map(g => `<div>• <strong>${g.title}:</strong> ${g.totalDist}m</div>`).join('')}
+      </div>
+    </div>
+  `).join('');
+  if (window.lucide) lucide.createIcons();
+}
+
+function deleteSavedItem(id) {
+  let saved = JSON.parse(localStorage.getItem('aquaplan_saved') || '[]');
+  saved = saved.filter(s => s.id !== id);
+  localStorage.setItem('aquaplan_saved', JSON.stringify(saved));
+  loadSavedArchive();
+}
+
+function clearAllSaved() {
+  if (confirm("すべての保存ログを削除しますか？")) {
+    localStorage.removeItem('aquaplan_saved');
+    loadSavedArchive();
+  }
+}
+
+// コピー機能
+function copyAllActiveMenus() {
+  if (generatedActiveGroups.length === 0) return;
+  let text = "=== AquaPlan SWIM MENU ===\n\n";
+  generatedActiveGroups.forEach(g => {
+    text += `【${g.title}】 Total: ${g.totalDist}m\n`;
+    g.items.forEach(it => {
+      text += `${it.cat.padEnd(6)} | ${it.setInfo.padEnd(10)} | ${it.style.padEnd(8)} | ${it.circle.padEnd(6)} | ${it.desc}\n`;
+    });
+    text += "\n";
+  });
+  navigator.clipboard.writeText(text);
+  alert("テキスト形式でクリップボードにコピーしました！");
+}
+
+// 印刷処理
+function printMultiLayout() {
+  const container = document.getElementById('print-lanes-container');
+  document.getElementById('print-sheet-date').innerText = new Date().toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' });
+
+  container.innerHTML = generatedActiveGroups.map(g => `
+    <div class="print-card">
+      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #000; padding-bottom:8px; margin-bottom:12px;">
+        <div>
+          <h2 style="font-size:20px; font-weight:900; margin:0;">${g.title}</h2>
+          <span style="font-size:12px;">100m Base Pace: ${g.pace}</span>
+        </div>
+        <div style="font-size:18px; font-weight:900;">Total: ${g.totalDist}m</div>
+      </div>
+      <table style="width:100%; border-collapse:collapse; font-size:12px;">
+        <thead>
+          <tr style="border-bottom:2px solid #000; text-align:left;">
+            <th style="padding:6px;">Category</th>
+            <th style="padding:6px;">Set</th>
+            <th style="padding:6px;">Style</th>
+            <th style="padding:6px;">Content</th>
+            <th style="padding:6px;">Circle</th>
+            <th style="padding:6px; text-align:right;">Dist</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${g.items.map(it => `
+            <tr style="border-bottom:1px solid #ccc;">
+              <td style="padding:6px; font-weight:bold;">${it.cat}</td>
+              <td style="padding:6px; font-weight:bold;">${it.setInfo}</td>
+              <td style="padding:6px;">${it.style}</td>
+              <td style="padding:6px;">${it.desc}</td>
+              <td style="padding:6px; font-weight:bold;">${it.circle}</td>
+              <td style="padding:6px; text-align:right;">${it.dist}m</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `).join('');
+
+  window.print();
+}
+</script>
+</body>
+</html>
