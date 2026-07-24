@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AQUAPLAN - 競泳メニュー作成アシスタント</title>
+  <style>
+    :root {
+      --primary: #0284c7;
+      --primary-dark: #0369a1;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --text: #1e293b;
+      --border: #cbd5e1;
+      --accent: #d97706;
+      --badge-bg: #e0f2fe;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: var(--bg); color: var(--text); line-height: 1.5; padding: 15px; max-width: 950px; margin: 0 auto; }
+
+    header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid var(--primary); padding-bottom: 10px; }
+    h1 { color: var(--primary); font-size: 1.5rem; }
+    
+    .card { background: var(--card-bg); border-radius: 10px; padding: 15px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border: 1px solid var(--border); }
+    .card-title { font-weight: bold; margin-bottom: 12px; color: var(--primary-dark); font-size: 1.05rem; border-bottom: 1px solid var(--border); padding-bottom: 5px; }
+
+    .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; }
+    .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
+    .form-group { margin-bottom: 10px; }
+    label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 4px; }
+    input, select, button { width: 100%; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--border); font-size: 0.9rem; }
+    
+    .checkbox-group { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 5px; }
+    .checkbox-item { display: flex; align-items: center; gap: 4px; font-size: 0.85rem; }
+    .checkbox-item input { width: auto; }
+
+    .btn { background: var(--primary); color: white; border: none; font-weight: bold; cursor: pointer; transition: background 0.2s; }
+    .btn:hover { background: var(--primary-dark); }
+    .btn-secondary { background: #64748b; }
+    .btn-secondary:hover { background: #475569; }
+    .btn-danger { background: #ef4444; }
+    .btn-sm { padding: 4px 8px; font-size: 0.75rem; width: auto; }
+
+    /* Total Stats Header */
+    .stats-bar { display: flex; gap: 15px; justify-content: center; margin-bottom: 15px; }
+    .stat-badge { background: var(--badge-bg); color: var(--primary-dark); padding: 8px 16px; border-radius: 20px; font-weight: bold; font-size: 0.95rem; border: 1px solid #bae6fd; }
+
+    /* Menu Phase Cards */
+    .phase-card { background: #fff; border: 1px solid var(--border); border-left: 5px solid var(--primary); padding: 12px; margin-bottom: 12px; border-radius: 6px; position: relative; }
+    .phase-card.is-set { border-left-color: var(--accent); background: #fffbeb; }
+    
+    .phase-header { display: flex; justify-content: space-between; align-items: center; font-weight: bold; margin-bottom: 6px; border-bottom: 1px dashed var(--border); padding-bottom: 4px; }
+    .phase-main-line { font-size: 1.05rem; font-weight: bold; color: #0f172a; }
+    .phase-note { font-size: 0.82rem; color: #475569; margin-top: 4px; font-style: italic; }
+    
+    .intensity-badge { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; color: #fff; background: #64748b; margin-left: 5px; }
+    .int-A1, .int-A2 { background: #10b981; }
+    .int-En1, .int-En2 { background: #0284c7; }
+    .int-En3 { background: #f59e0b; }
+    .int-Sp1, .int-Sp2, .int-Sp3 { background: #ef4444; }
+
+    .timeline-tag { font-size: 0.8rem; background: #f1f5f9; color: #475569; padding: 2px 6px; border-radius: 4px; font-weight: normal; }
+
+    .preset-item { display: flex; justify-content: space-between; align-items: center; padding: 8px; border-bottom: 1px solid var(--border); }
+    .tag-sm { font-size: 0.7rem; background: #e2e8f0; padding: 1px 5px; border-radius: 3px; margin-right: 3px; }
+
+    @media print {
+      body { background: white; padding: 0; }
+      .no-print { display: none !important; }
+      .card { box-shadow: none; border: none; padding: 0; }
+      .phase-card { page-break-inside: avoid; border: 1px solid #000; margin-bottom: 8px; }
+      .btn-sm { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<header class="no-print">
+  <h1>AQUAPLAN</h1>
+  <span style="font-size:0.8rem; color:#64748b;">競泳メニュー自動生成アシスタント</span>
+</header>
+
+<!-- 1. 条件・ツールの設定 -->
+<div class="card no-print">
+  <div class="card-title">1. コンディション & パラメータ設定</div>
+  <div class="grid-3">
+    <div class="form-group">
+      <label>目標時間 (分)</label>
+      <input type="number" id="targetTime" value="60" step="5">
+    </div>
+    <div class="form-group">
+      <label>水路長 (プール)</label>
+      <select id="poolLength">
+        <option value="25">短水路 (25m)</option>
+        <option value="50">長水路 (50m)</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>100m参考タイム (分:秒)</label>
+      <input type="text" id="refTime" value="1:05.0" placeholder="例: 1:05.0">
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="form-group">
+      <label>メインフォーカス</label>
+      <select id="focusType">
+        <option value="Aerobic">Aerobic (持久力・ベース)</option>
+        <option value="Speed">Speed (耐乳酸・スプリント)</option>
+        <option value="Technique">Technique (フォーム・ドリル)</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>使用可能ツール</label>
+      <div class="checkbox-group">
+        <label class="checkbox-item"><input type="checkbox" class="gear-check" value="Fin" checked> フィン</label>
+        <label class="checkbox-item"><input type="checkbox" class="gear-check" value="Paddle" checked> パドル</label>
+        <label class="checkbox-item"><input type="checkbox" class="gear-check" value="Snorkel" checked> スノーケル</label>
+        <label class="checkbox-item"><input type="checkbox" class="gear-check" value="Pull Buoy" checked> プルブイ</label>
+      </div>
+    </div>
+  </div>
+
+  <button class="btn" onclick="generateMenu()" style="margin-top:10px; padding:10px;">メニューを自動生成する</button>
+</div>
+
+<!-- 2. プリセットライブラリ -->
+<div class="card no-print">
+  <div class="card-title">2. プリセットライブラリ (詳細タグ登録)</div>
+  <div class="grid-3">
+    <input type="text" id="presetName" placeholder="メニュー名 (例: 25m Max Sprint)">
+    <select id="presetPhase">
+      <option value="Warm Up">Warm Up</option>
+      <option value="Kick">Kick</option>
+      <option value="Pull">Pull</option>
+      <option value="Drill">Drill</option>
+      <option value="Main" selected>Main</option>
+      <option value="Down">Down</option>
+    </select>
+    <select id="presetIntensity">
+      <option value="A1">A1 (Rest/Easy)</option>
+      <option value="En1">En1 (Base Base)</option>
+      <option value="En2">En2 (AT Pace)</option>
+      <option value="En3">En3 (VO2max)</option>
+      <option value="Sp1">Sp1 (Tolerance)</option>
+      <option value="Sp3">Sp3 (Peak Speed)</option>
+    </select>
+  </div>
+  <div class="grid-2" style="margin-top:8px;">
+    <select id="presetStyle">
+      <option value="Fr">Fr</option>
+      <option value="Ba">Ba</option>
+      <option value="Br">Br</option>
+      <option value="Fly">Fly</option>
+      <option value="IM">IM</option>
+      <option value="Choice" selected>Choice/無指定</option>
+    </select>
+    <input type="text" id="presetDetail" placeholder="詳細・解説 (例: 25m*8t @:45 15m破裂的ハード)">
+  </div>
+  <button class="btn btn-secondary" onclick="savePreset()" style="margin-top:8px; padding:6px;">プリセットとして保存</button>
+
+  <!-- 絞り込み検索 -->
+  <div style="margin-top:15px; border-top:1px dashed var(--border); padding-top:10px;">
+    <label>ライブラリ検索・絞り込み:</label>
+    <input type="text" id="presetSearch" placeholder="キーワード・種目・強度で検索..." oninput="loadPresets()">
+  </div>
+  <div id="presetList" style="margin-top:8px; max-height:180px; overflow-y:auto;"></div>
+</div>
+
+<!-- 3. メニュー表示エリア -->
+<div class="card">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+    <div class="card-title" style="margin:0;">作成された練習メニュー</div>
+    <button class="btn btn-sm no-print" onclick="window.print()">印刷 / PDF出力</button>
+  </div>
+
+  <div class="stats-bar">
+    <div class="stat-badge" id="totalDistanceBadge">総距離: 0 m</div>
+    <div class="stat-badge" id="totalTimeBadge">全体時間: 約 0 分</div>
+  </div>
+
+  <div id="menuContainer">
+    <!-- メニューが動的に表示されます -->
+  </div>
+</div>
+
+<script>
+// --- グローバル状態 ---
+let currentMenu = [];
+
+// 補助: 時間文字列 (1:05.0) ➡ 秒数 (65)
+function parseRefTimeToSeconds(str) {
+  if (!str) return 65; // デフォルト 1:05.0
+  const parts = str.split(':');
+  if (parts.length === 2) {
+    return (parseFloat(parts[0]) * 60) + parseFloat(parts[1]);
+  }
+  return parseFloat(str) || 65;
+}
+
+// 補助: 5秒刻みに繰り上げ
+function roundTo5Sec(sec) {
+  return Math.ceil(sec / 5) * 5;
+}
+
+// 補助: 秒数 ➡ M:SS
+function formatTime(sec) {
+  const m = Math.floor(sec / 60);
+  const s = Math.round(sec % 60);
+  return `${m}:${s < 10 ? '0' : ''}${s}`;
+}
+
+// 強度に応じたサイクル時間計算 (100mベースからのスケーリング)
+function calculateCycle(dist, intensity, refSec100) {
+  let basePace = (refSec100 / 100) * dist;
+  let addSec = 0;
+
+  switch(intensity) {
+    case 'A1': case 'A2': addSec = dist * 0.25; break; // ゆったり
+    case 'En1': addSec = dist * 0.20; break;
+    case 'En2': addSec = dist * 0.15; break;
+    case 'En3': addSec = dist * 0.25; break; // 高負荷・少しレスト確保
+    case 'Sp1': case 'Sp2': addSec = dist * 0.40; break; // 耐乳酸
+    case 'Sp3': addSec = dist * 0.60; break; // 最大サークル
+    default: addSec = dist * 0.20;
+  }
+  return roundTo5Sec(basePace + addSec);
+}
+
+// --- メニュー生成メインロジック ---
+function generateMenu() {
+  const targetMinutes = parseInt(document.getElementById("targetTime").value) || 60;
+  const poolLen = parseInt(document.getElementById("poolLength").value) || 25;
+  const refSec100 = parseRefTimeToSeconds(document.getElementById("refTime").value);
+  const focus = document.getElementById("focusType").value;
+  const selectedGears = Array.from(document.querySelectorAll('.gear-check:checked')).map(cb => cb.value);
+
+  currentMenu = [];
+
+  // 1. Warm Up
+  currentMenu.push({
+    phase: "Warm Up",
+    style: "Choice",
+    dist: poolLen === 50 ? 400 : 300,
+    count: 1,
+    cycle: calculateCycle(poolLen === 50 ? 400 : 300, 'A1', refSec100),
+    intensity: "A1",
+    desc: "SKPS (認知・段階的ウォーミングアップ)",
+    gear: "",
+    note: "フォームの確認と脈拍を徐々に上げる"
+  });
+
+  // 2. Drill / Tech (25mスカーリング等の組み込み対応)
+  let drillDist = (poolLen === 50) ? 50 : 25;
+  let drillDesc = (poolLen === 50) ? "25m Sculling / 25m Form Swim" : "Sculling & Switch Drill";
+  currentMenu.push({
+    phase: "Drill",
+    style: "Choice",
+    dist: drillDist,
+    count: 8,
+    cycle: calculateCycle(drillDist, 'A2', refSec100),
+    intensity: "A2",
+    desc: drillDesc,
+    gear: selectedGears.includes("Fin") ? "Fin" : "",
+    note: "水捉えの感覚キャッチとキャッチポイントの意識"
+  });
+
+  // 3. Kick or Pull (多段フェーズ構成)
+  currentMenu.push({
+    phase: "Kick",
+    style: "Choice",
+    dist: 50,
+    count: 6,
+    cycle: calculateCycle(50, 'En1', refSec100),
+    intensity: "En1",
+    desc: "Kick Build-Up 1t-3t",
+    gear: selectedGears.includes("Board") ? "Board" : "",
+    note: "軸のブレを防ぎ強いキックを維持"
+  });
+
+  // 4. Main Set (長水路・短水路 & 25mスプリント配慮)
+  if (focus === "Speed") {
+    // 25mスプリント主軸
+    let mDist = (poolLen === 50) ? 50 : 25;
+    let mDesc = (poolLen === 50) ? "25m Max Sprint / 25m Easy" : "All-Out Sprint";
+    currentMenu.push({
+      phase: "Main",
+      style: "Fr/Choice",
+      dist: mDist,
+      count: 12,
+      cycle: calculateCycle(mDist, 'Sp2', refSec100),
+      intensity: "Sp2",
+      desc: mDesc,
+      gear: selectedGears.includes("Paddle") ? "Paddle" : "",
+      note: "最高泳速の維持と抵抗の少ないボディポジション"
+    });
+  } else {
+    // Aerobic / En2
+    let mDist = 100;
+    currentMenu.push({
+      phase: "Main",
+      style: "Fr",
+      dist: mDist,
+      count: 8,
+      cycle: calculateCycle(mDist, 'En2', refSec100),
+      intensity: "En2",
+      desc: "Descending 1t-4t (AT Pace Keep)",
+      gear: "",
+      note: "ペース配分とTarget Timeの厳守"
+    });
+  }
+
+  // 5. Down
+  currentMenu.push({
+    phase: "Down",
+    style: "Choice",
+    dist: 200,
+    count: 1,
+    cycle: calculateCycle(200, 'A1', refSec100),
+    intensity: "A1",
+    desc: "Easy Swim / Loosen",
+    gear: "",
+    note: "心拍数を落ち着かせ疲労物質の除去"
+  });
+
+  renderMenu();
+}
+
+// --- UI描画 ＆ タイムライン・総距離計算 ---
+function renderMenu() {
+  const container = document.getElementById("menuContainer");
+  container.innerHTML = "";
+
+  let totalDist = 0;
+  let cumulativeSec = 0;
+
+  currentMenu.forEach((item, index) => {
+    let phaseDist = 0;
+    let phaseSec = 0;
+
+    if (item.isSet) {
+      let subDist = 0;
+      let subSec = 0;
+      item.subItems.forEach(s => {
+        subDist += s.dist * s.count;
+        subSec += s.count * s.cycle;
+      });
+      phaseDist = subDist * item.sets;
+      phaseSec = (subSec * item.sets) + ((item.sets - 1) * item.setRest);
+    } else {
+      phaseDist = item.dist * item.count;
+      phaseSec = item.count * item.cycle;
+    }
+
+    totalDist += phaseDist;
+    cumulativeSec += phaseSec;
+
+    const card = document.createElement("div");
+    card.className = `phase-card ${item.isSet ? 'is-set' : ''}`;
+
+    card.innerHTML = `
+      <div class="phase-header">
+        <div>
+          <span>[${item.phase}]</span>
+          <span class="intensity-badge int-${item.intensity || 'A1'}">${item.intensity || 'A1'}</span>
+          <span class="timeline-tag">経過: ${formatTime(cumulativeSec)}</span>
+        </div>
+        <div class="phase-controls no-print">
+          <button class="btn btn-sm btn-secondary" onclick="movePhase(${index}, -1)">▲</button>
+          <button class="btn btn-sm btn-secondary" onclick="movePhase(${index}, 1)">▼</button>
+          <button class="btn btn-sm btn-danger" onclick="deletePhase(${index})">削除</button>
+        </div>
+      </div>
+      <div class="phase-main-line">
+        ${item.count}t × ${item.dist}m | ${item.desc} | @${formatTime(item.cycle)}
+        ${item.gear ? `<span style="color:var(--primary-dark); font-size:0.85rem;">[${item.gear}]</span>` : ''}
+      </div>
+      ${item.note ? `<div class="phase-note">💡 Point: ${item.note}</div>` : ''}
+    `;
+
+    container.appendChild(card);
+  });
+
+  // ヘッダー表示更新
+  document.getElementById("totalDistanceBadge").innerText = `総距離: ${totalDist.toLocaleString()} m`;
+  document.getElementById("totalTimeBadge").innerText = `全体時間: 約 ${Math.floor(cumulativeSec / 60)}分 ${cumulativeSec % 60}秒`;
+}
+
+// --- 並び替え・削除 ---
+function movePhase(index, dir) {
+  const newIndex = index + dir;
+  if (newIndex < 0 || newIndex >= currentMenu.length) return;
+  const temp = currentMenu[index];
+  currentMenu[index] = currentMenu[newIndex];
+  currentMenu[newIndex] = temp;
+  renderMenu();
+}
+
+function deletePhase(index) {
+  currentMenu.splice(index, 1);
+  renderMenu();
+}
+
+// --- プリセット管理 (LocalStorage & タグ検索) ---
+function savePreset() {
+  const name = document.getElementById("presetName").value;
+  const phase = document.getElementById("presetPhase").value;
+  const intensity = document.getElementById("presetIntensity").value;
+  const style = document.getElementById("presetStyle").value;
+  const detail = document.getElementById("presetDetail").value;
+
+  if (!name || !detail) return alert("メニュー名と詳細を入力してください");
+
+  const presets = JSON.parse(localStorage.getItem("aquaplan_presets_v2") || "[]");
+  presets.push({ id: Date.now(), name, phase, intensity, style, detail });
+  localStorage.setItem("aquaplan_presets_v2", JSON.stringify(presets));
+
+  document.getElementById("presetName").value = "";
+  document.getElementById("presetDetail").value = "";
+  loadPresets();
+}
+
+function loadPresets() {
+  const list = document.getElementById("presetList");
+  const query = (document.getElementById("presetSearch")?.value || "").toLowerCase();
+  const presets = JSON.parse(localStorage.getItem("aquaplan_presets_v2") || "[]");
+  
+  list.innerHTML = "";
+
+  const filtered = presets.filter(p => 
+    p.name.toLowerCase().includes(query) || 
+    p.phase.toLowerCase().includes(query) || 
+    p.intensity.toLowerCase().includes(query) || 
+    p.style.toLowerCase().includes(query) || 
+    p.detail.toLowerCase().includes(query)
+  );
+
+  filtered.forEach((p, index) => {
+    const item = document.createElement("div");
+    item.className = "preset-item";
+    item.innerHTML = `
+      <div>
+        <strong>${p.name}</strong> 
+        <span class="tag-sm">${p.phase}</span>
+        <span class="tag-sm" style="background:#bae6fd;">${p.intensity}</span>
+        <span class="tag-sm" style="background:#fef08a;">${p.style}</span>
+        <br><small style="color:#64748b;">${p.detail}</small>
+      </div>
+      <div>
+        <button class="btn btn-sm" onclick="addPresetToMenu(${p.id})">追加</button>
+        <button class="btn btn-sm btn-danger" onclick="deletePreset(${p.id})">消去</button>
+      </div>
+    `;
+    list.appendChild(item);
+  });
+}
+
+function addPresetToMenu(id) {
+  const presets = JSON.parse(localStorage.getItem("aquaplan_presets_v2") || "[]");
+  const p = presets.find(item => item.id === id);
+  if (!p) return;
+
+  const refSec100 = parseRefTimeToSeconds(document.getElementById("refTime").value);
+
+  currentMenu.push({
+    phase: p.phase,
+    style: p.style,
+    dist: 50,
+    count: 4,
+    cycle: calculateCycle(50, p.intensity, refSec100),
+    intensity: p.intensity,
+    desc: `${p.name} (${p.detail})`,
+    gear: "",
+    note: "プリセットからの手動追加メニュー"
+  });
+  renderMenu();
+}
+
+function deletePreset(id) {
+  let presets = JSON.parse(localStorage.getItem("aquaplan_presets_v2") || "[]");
+  presets = presets.filter(p => p.id !== id);
+  localStorage.setItem("aquaplan_presets_v2", JSON.stringify(presets));
+  loadPresets();
+}
+
+// 初期実行
+loadPresets();
+generateMenu();
+</script>
+
+</body>
+</html>
