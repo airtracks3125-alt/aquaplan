@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AQUAPLAN - SWIM TRAINING SPEC SHEET</title>
+  <style>
+    :root {
+      --primary: #0284c7;
+      --text-main: #0f172a;
+      --text-sub: #475569;
+      --bg-gray: #f8fafc;
+      --border-color: #cbd5e1;
+    }
+    body {
+      font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', Meiryo, sans-serif;
+      color: var(--text-main);
+      margin: 0; padding: 20px;
+      background-color: #e2e8f0;
+    }
+    .container {
+      max-width: 900px; margin: 0 auto;
+      background: #fff; padding: 30px;
+      border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    .header {
+      border-bottom: 3px solid var(--primary);
+      padding-bottom: 15px; margin-bottom: 20px;
+      display: flex; justify-content: space-between; align-items: flex-end;
+    }
+    .header h1 {
+      margin: 0; color: var(--primary); font-size: 2rem;
+      letter-spacing: 1px;
+    }
+    .header-sub { font-size: 0.85rem; font-weight: bold; color: var(--text-sub); }
+    
+    /* テーブル全体のデザイン */
+    table {
+      width: 100%; border-collapse: collapse; margin-bottom: 20px;
+      font-size: 0.9rem;
+    }
+    th, td {
+      border: 1px solid var(--border-color);
+      padding: 12px; vertical-align: top;
+    }
+    th {
+      background-color: var(--text-main); color: #fff;
+      font-size: 0.8rem; text-align: left;
+    }
+    
+    /* 各種バッジのデザイン */
+    .badge-zone {
+      display: inline-block; padding: 2px 6px;
+      border-radius: 4px; font-size: 0.75rem; font-weight: bold; color: #fff;
+    }
+    .zone-a1 { background-color: #22c55e; }
+    .zone-en1 { background-color: #0284c7; }
+    .zone-en2 { background-color: #2563eb; }
+    .zone-sp1 { background-color: #ef4444; }
+    
+    .badge-gear {
+      display: inline-block; padding: 2px 6px;
+      background-color: var(--primary); color: #fff;
+      border-radius: 4px; font-size: 0.75rem; font-weight: bold;
+    }
+
+    /* 💡 修正点1: サイクル表示の視認性改善 */
+    .cycle-badge {
+      display: inline-flex; align-items: center;
+      background-color: #e0f2fe; /* 明るい水色 */
+      color: #0f172a; /* 濃い黒・ネイビー系 */
+      padding: 4px 8px; border-radius: 4px;
+      font-weight: bold; font-family: monospace; font-size: 0.9rem;
+      border: 1px solid #bae6fd;
+    }
+
+    /* 💡 修正点2: インストラクションのステルスエディタ（折り返し対応） */
+    .stealth-editor {
+      width: 100%; min-height: 40px;
+      outline: none; white-space: pre-wrap; word-wrap: break-word;
+      color: var(--text-sub); line-height: 1.5;
+      padding: 4px; border-radius: 4px; transition: background 0.2s;
+    }
+    .stealth-editor:hover { background-color: #f1f5f9; }
+    .stealth-editor:focus { background-color: #fff; box-shadow: 0 0 0 2px var(--primary); }
+
+    .menu-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; font-weight: bold; font-size: 1.1rem; }
+    .set-header { border-bottom: 1px dashed var(--border-color); padding-bottom: 5px; margin-bottom: 10px; color: var(--primary); font-weight: bold; }
+    
+    .btn-generate {
+      display: block; width: 100%; padding: 15px;
+      background-color: var(--primary); color: #fff;
+      text-align: center; font-size: 1.1rem; font-weight: bold;
+      border: none; border-radius: 6px; cursor: pointer; margin-bottom: 20px;
+    }
+    .btn-generate:hover { background-color: #0369a1; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <button class="btn-generate" onclick="generateMenu()">🔄 メニューを再生成する</button>
+
+  <div class="header">
+    <div>
+      <h1>AQUAPLAN</h1>
+      <div class="header-sub">SWIM TRAINING SPEC SHEET</div>
+    </div>
+    <div style="text-align: right; font-size: 0.85rem; font-weight: bold;">
+      <div>DATE: <span id="current-date"></span></div>
+      <div>POOL: 短水路 (25m)</div>
+    </div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 15%;">PHASE / INTENSITY</th>
+        <th style="width: 50%;">MENU DETAILS (COUNT × DIST @ CYCLE)</th>
+        <th style="width: 35%;">COACH'S INTENT & INSTRUCTION</th>
+      </tr>
+    </thead>
+    <tbody id="menu-tbody">
+      <!-- メニューがここに生成されます -->
+    </tbody>
+  </table>
+</div>
+
+<script>
+  // 今日の日付をセット
+  const dateStr = new Date().toLocaleDateString('ja-JP', { year: 'numeric', month: '2nd', day: 'numeric' }).replace(/\//g, '.');
+  document.getElementById('current-date').innerText = dateStr;
+
+  // 💡 修正点3: モジュール組み立て型（コンストレイント・ベース）のメニュー生成ロジック
+  function generatePhase(phaseName, intensity, dist, totalVolume, gear, intent) {
+    let html = '';
+    
+    // 距離に対する適切な本数を計算
+    let count = Math.floor(totalVolume / dist);
+    if (count < 1) count = 1;
+
+    // ベースのサイクル秒数（例として簡略化）
+    let cycleSec = dist === 50 ? 50 : (dist === 100 ? 90 : 180); 
+    
+    let cycleMin = Math.floor(cycleSec / 60);
+    let cycleRem = (cycleSec % 60).toString().padStart(2, '0');
+    let cycleDisplay = `@ ${cycleMin}:${cycleRem}`;
+
+    // 🚨 セーフガード：本数が多すぎる（12本以上）場合は「セット」に強制分割
+    if (count > 12) {
+      let sets = Math.ceil(count / 8);
+      let countPerSet = Math.floor(count / sets);
+      
+      html += `
+        <div class="set-header">${sets} SETS (Rest @ 30s)</div>
+        <div class="menu-row">
+          <span>${countPerSet} t × ${dist} m</span>
+        </div>
+        <div style="margin-bottom: 8px;">Fr ${phaseName} - Pace Keep</div>
+        <div>
+          <span class="cycle-badge">${cycleDisplay}</span>
+          ${gear ? `<span class="badge-gear">[${gear}]</span>` : ''}
+        </div>
+      `;
+    } else {
+      // 通常のストレートメニュー
+      // 🎲 ランダム要素: 30%の確率でディセンディングやビルドアップを付与
+      let styleText = "Fr " + phaseName;
+      if (intensity === 'En2' && Math.random() > 0.7) styleText += " (1t-4t Descend)";
+      
+      html += `
+        <div class="menu-row">
+          <span>${count} t × ${dist} m</span>
+        </div>
+        <div style="margin-bottom: 8px;">${styleText}</div>
+        <div>
+          <span class="cycle-badge">${cycleDisplay}</span>
+          ${gear ? `<span class="badge-gear">[${gear}]</span>` : ''}
+        </div>
+      `;
+    }
+
+    return `
+      <tr>
+        <td>
+          <div style="font-weight: bold; margin-bottom: 8px;">${phaseName}</div>
+          <span class="badge-zone zone-${intensity.toLowerCase()}">${intensity}</span>
+        </td>
+        <td>${html}</td>
+        <td>
+          <div class="stealth-editor" contenteditable="true">💡 ${intent}</div>
+        </td>
+      </tr>
+    `;
+  }
+
+  function generateMenu() {
+    const tbody = document.getElementById('menu-tbody');
+    tbody.innerHTML = ''; // クリア
+    
+    // フェーズ定義 (名前, 強度, 基準距離, 割り当てボリューム(m), ギア, インストラクション)
+    const phases = [
+      { name: "Warm Up", intensity: "A1", dist: 200, vol: 400, gear: "", intent: "関節可動域の確保と段階的な心拍数の向上。水をつかむ感覚を丁寧に確かめる。" },
+      { name: "Drill", intensity: "A2", dist: 50, vol: 400, gear: "Snorkel", intent: "体幹軸の固定とエントリーの角度調整。フロントスカルでキャッチの感覚を研ぎ澄ます。" },
+      { name: "Kick & Pull", intensity: "En1", dist: 50, vol: 800, gear: "Board", intent: "下半身の推進力強化と、プル時のローテーションの連動性を高める。" },
+      { name: "Main 1", intensity: "En2", dist: 100, vol: 1600, gear: "Paddle", intent: "本数を重ねるごとにビルドアップ。後半のセットでもストローク長を落とさないよう意識。" },
+      { name: "Main 2", intensity: "Sp1", dist: 50, vol: 300, gear: "Fin", intent: "最大スピードでの出力。フィンを使ってレースペース以上のオーバースピードを体感する。" },
+      { name: "Down", intensity: "A1", dist: 200, vol: 200, gear: "", intent: "心拍数の降下と疲労物質の除去。フォームをリセットして終了。" }
+    ];
+
+    let finalHtml = '';
+    phases.forEach(p => {
+      finalHtml += generatePhase(p.name, p.intensity, p.dist, p.vol, p.gear, p.intent);
+    });
+
+    tbody.innerHTML = finalHtml;
+  }
+
+  // 初期読み込み時にメニューを生成
+  window.onload = generateMenu;
+</script>
+
+</body>
+</html>
