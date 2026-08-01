@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="ja" class="h-full bg-slate-950">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AquaPlan PRO v4.0</title>
+<!-- Tailwind CSS & Lucide Icons -->
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Noto+Sans+JP:wght@400;500;700;900&family=JetBrains+Mono:wght@400;700&display=swap');
+
+  body {
+    font-family: 'Noto Sans JP', sans-serif;
+  }
+  .font-cyber {
+    font-family: 'Orbitron', sans-serif;
+  }
+  .font-mono-code {
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* ネオン発光エフェクト */
+  .neon-border-cyan { box-shadow: 0 0 10px rgba(6, 182, 212, 0.2), inset 0 0 10px rgba(6, 182, 212, 0.1); }
+  .neon-border-blue { box-shadow: 0 0 10px rgba(59, 130, 246, 0.2), inset 0 0 10px rgba(59, 130, 246, 0.1); }
+  .neon-border-indigo { box-shadow: 0 0 10px rgba(99, 102, 241, 0.2), inset 0 0 10px rgba(99, 102, 241, 0.1); }
+  .neon-glow-btn { box-shadow: 0 0 15px rgba(6, 182, 212, 0.4); }
+  .neon-glow-btn:hover { box-shadow: 0 0 25px rgba(6, 182, 212, 0.7); }
+
+  /* スクロールバーカスタム */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: #090d16; }
+  ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: #06b6d4; }
+
+  /* --------------------------------------------------
+     印刷用スタイル (SWIM SHEET: レーンごとにA4 1枚出力)
+  -------------------------------------------------- */
+  @media print {
+    @page {
+      size: A4 portrait;
+      margin: 12mm;
+    }
+    body {
+      background: #ffffff !important;
+      color: #000000 !important;
+      font-size: 11pt;
+    }
+    .no-print {
+      display: none !important;
+    }
+    .print-only {
+      display: block !important;
+    }
+    
+    /* 各レーンシートごとに改ページ */
+    .swim-sheet-page {
+      page-break-after: always;
+      break-after: page;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .swim-sheet-page:last-child {
+      page-break-after: auto;
+      break-after: auto;
+    }
+
+    table {
+      border-collapse: collapse !important;
+      width: 100% !important;
+    }
+    th, td {
+      border: 1.5px solid #000000 !important;
+      padding: 8px 10px !important;
+      color: #000000 !important;
+    }
+    th {
+      background-color: #f1f5f9 !important;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+  }
+
+  @media screen {
+    .print-only {
+      display: none !important;
+    }
+  }
+</style>
+</head>
+<body class="h-full text-slate-200 antialiased selection:bg-cyan-500 selection:text-slate-950">
+
+<!-- 1. パスコードロック画面 -->
+<div id="auth-screen" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-black">
+  <div class="w-full max-w-md p-8 rounded-2xl bg-slate-900/80 border border-cyan-500/30 neon-border-cyan backdrop-blur-xl relative overflow-hidden">
+    <div class="absolute -top-10 -right-10 w-32 h-32 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"></div>
+    <div class="text-center mb-8">
+      <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-cyan-950/80 border border-cyan-500/40 mb-4 text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.3)]">
+        <i data-lucide="waves" class="w-8 h-8"></i>
+      </div>
+      <h1 class="text-2xl font-black tracking-wider text-white font-cyber">AquaPlan <span class="text-cyan-400">PRO</span> <span class="text-xs px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">v4.0</span></h1>
+      <p class="text-xs text-slate-400 mt-2">SECURITY AUTHENTICATION</p>
+    </div>
+
+    <form onsubmit="handleAuth(event)" class="space-y-5">
+      <div>
+        <label class="block text-xs font-bold text-cyan-300 mb-2 tracking-widest uppercase flex items-center gap-1.5">
+          <i data-lucide="key-round" class="w-3.5 h-3.5"></i> Access Passcode
+        </label>
+        <input type="password" id="passcode-input" placeholder="合言葉を入力 (swim2026)" class="w-full px-4 py-3 bg-slate-950/80 border border-slate-700 rounded-xl text-center text-lg font-mono-code tracking-widest text-white focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-all">
+      </div>
+      <p id="auth-error" class="text-xs text-rose-500 text-center hidden font-bold flex items-center justify-center gap-1">
+        <i data-lucide="alert-circle" class="w-3.5 h-3.5"></i> 合言葉が正しくありません
+      </p>
+      <button type="submit" class="w-full py-3.5 bg-gradient-to-r from-cyan-500 to-blue-600 text-slate-950 font-black tracking-wider rounded-xl neon-glow-btn transition-all duration-300 flex items-center justify-center gap-2">
+        <i data-lucide="shield-check" class="w-5 h-5"></i> アクセス承認
+      </button>
+    </form>
+  </div>
+</div>
+
+<!-- 2. メインUI (画面表示用) -->
+<div id="app-container" class="hidden min-h-screen flex flex-col no-print bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-black">
+  
+  <!-- ヘッダー -->
+  <header class="border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-md sticky top-0 z-40">
+    <div class="max-w-[1700px] mx-auto px-4 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="p-2 rounded-lg bg-cyan-950 border border-cyan-500/30 text-cyan-400">
+          <i data-lucide="waves" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <span class="font-cyber font-black text-lg tracking-wider text-white">AquaPlan <span class="text-cyan-400">PRO</span> <span class="text-[10px] font-mono-code px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">v4.0</span></span>
+          <span class="text-[10px] text-slate-500 block -mt-1 font-mono-code">SWIMMING MENU GENERATOR</span>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <button onclick="saveData()" class="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-xs font-bold text-slate-300 flex items-center gap-1.5 transition-all">
+          <i data-lucide="save" class="w-3.5 h-3.5 text-cyan-400"></i> 保存
+        </button>
+        <button onclick="loadData()" class="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-xs font-bold text-slate-300 flex items-center gap-1.5 transition-all">
+          <i data-lucide="download" class="w-3.5 h-3.5 text-emerald-400"></i> 復元
+        </button>
+        <div class="h-4 w-px bg-slate-800 mx-1"></div>
+        <button onclick="executePrint()" class="px-4 py-1.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-xs flex items-center gap-1.5 transition-all shadow-[0_0_10px_rgba(6,182,212,0.3)]">
+          <i data-lucide="printer" class="w-4 h-4"></i> 📄 SWIM SHEET 印刷
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- メインレイアウト -->
+  <div class="flex-1 max-w-[1700px] w-full mx-auto p-4 lg:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+    
+    <!-- サイドバー: パラメータ設定 -->
+    <aside class="lg:col-span-4 xl:col-span-3 space-y-5">
+      <div class="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 backdrop-blur-md space-y-5">
+        <div class="flex items-center gap-2 border-b border-slate-800 pb-3">
+          <i data-lucide="sliders" class="w-4 h-4 text-cyan-400"></i>
+          <h2 class="text-sm font-bold tracking-wider text-slate-200">コンディション・設定</h2>
+        </div>
+
+        <!-- 基本設定 -->
+        <div class="space-y-4">
+          <div>
+            <label class="block text-xs font-bold text-slate-400 mb-1 flex items-center gap-1">
+              <i data-lucide="clock" class="w-3.5 h-3.5 text-cyan-400"></i> 開始時刻
+            </label>
+            <input type="time" id="start-time" value="16:30" onchange="recalculateAll()" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-sm font-mono-code text-cyan-300 focus:outline-none focus:border-cyan-500">
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-400 mb-1 flex items-center gap-1">
+              <i data-lucide="map-pin" class="w-3.5 h-3.5 text-cyan-400"></i> プール環境
+            </label>
+            <div class="grid grid-cols-2 gap-2">
+              <label class="flex items-center justify-center gap-2 p-2 rounded-lg bg-slate-950 border border-slate-800 cursor-pointer text-xs font-bold text-slate-300 has-[:checked]:border-cyan-500 has-[:checked]:text-cyan-400 transition-all">
+                <input type="radio" name="pool-length" value="25" checked onchange="generateAllLanes()" class="hidden"> Short (25m)
+              </label>
+              <label class="flex items-center justify-center gap-2 p-2 rounded-lg bg-slate-950 border border-slate-800 cursor-pointer text-xs font-bold text-slate-300 has-[:checked]:border-cyan-500 has-[:checked]:text-cyan-400 transition-all">
+                <input type="radio" name="pool-length" value="50" onchange="generateAllLanes()" class="hidden"> Long (50m)
+              </label>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-400 mb-1 flex items-center justify-between">
+              <span class="flex items-center gap-1"><i data-lucide="target" class="w-3.5 h-3.5 text-cyan-400"></i> 目標総距離</span>
+              <span id="target-dist-val" class="text-cyan-400 font-mono-code font-bold">4000m</span>
+            </label>
+            <input type="range" id="target-distance" min="2000" max="8000" step="100" value="4000" oninput="document.getElementById('target-dist-val').innerText = this.value + 'm'" onchange="generateAllLanes()" class="w-full accent-cyan-400 bg-slate-950 h-2 rounded-lg cursor-pointer">
+          </div>
+        </div>
+
+        <!-- レーン設定 -->
+        <div class="border-t border-slate-800 pt-4 space-y-3">
+          <label class="block text-xs font-bold text-slate-400 flex items-center gap-1">
+            <i data-lucide="layers" class="w-3.5 h-3.5 text-cyan-400"></i> レーン構成・基準タイム (100m)
+          </label>
+          <div class="space-y-2">
+            <!-- Lane A -->
+            <div class="p-2.5 rounded-lg bg-slate-950/80 border border-slate-800/80 flex items-center justify-between gap-2">
+              <label class="flex items-center gap-2 cursor-pointer text-xs font-bold text-cyan-400">
+                <input type="checkbox" id="lane-a-enable" checked onchange="generateAllLanes()" class="rounded border-slate-700 bg-slate-900 text-cyan-500 focus:ring-0"> Lane A
+              </label>
+              <div class="flex items-center gap-1 text-xs">
+                <span class="text-slate-500 font-mono-code">基準:</span>
+                <input type="text" id="lane-a-base" value="1'10" onchange="generateAllLanes()" class="w-16 px-1.5 py-1 bg-slate-900 border border-slate-700 rounded text-center font-mono-code text-white text-xs focus:outline-none focus:border-cyan-500">
+              </div>
+            </div>
+            <!-- Lane B -->
+            <div class="p-2.5 rounded-lg bg-slate-950/80 border border-slate-800/80 flex items-center justify-between gap-2">
+              <label class="flex items-center gap-2 cursor-pointer text-xs font-bold text-blue-400">
+                <input type="checkbox" id="lane-b-enable" checked onchange="generateAllLanes()" class="rounded border-slate-700 bg-slate-900 text-blue-500 focus:ring-0"> Lane B
+              </label>
+              <div class="flex items-center gap-1 text-xs">
+                <span class="text-slate-500 font-mono-code">基準:</span>
+                <input type="text" id="lane-b-base" value="1'20" onchange="generateAllLanes()" class="w-16 px-1.5 py-1 bg-slate-900 border border-slate-700 rounded text-center font-mono-code text-white text-xs focus:outline-none focus:border-cyan-500">
+              </div>
+            </div>
+            <!-- Lane C -->
+            <div class="p-2.5 rounded-lg bg-slate-950/80 border border-slate-800/80 flex items-center justify-between gap-2">
+              <label class="flex items-center gap-2 cursor-pointer text-xs font-bold text-indigo-400">
+                <input type="checkbox" id="lane-c-enable" checked onchange="generateAllLanes()" class="rounded border-slate-700 bg-slate-900 text-indigo-500 focus:ring-0"> Lane C
+              </label>
+              <div class="flex items-center gap-1 text-xs">
+                <span class="text-slate-500 font-mono-code">基準:</span>
+                <input type="text" id="lane-c-base" value="1'35" onchange="generateAllLanes()" class="w-16 px-1.5 py-1 bg-slate-900 border border-slate-700 rounded text-center font-mono-code text-white text-xs focus:outline-none focus:border-cyan-500">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- マテリアル設定 -->
+        <div class="border-t border-slate-800 pt-4 space-y-2">
+          <label class="block text-xs font-bold text-slate-400 flex items-center gap-1">
+            <i data-lucide="package" class="w-3.5 h-3.5 text-cyan-400"></i> 使用マテリアル
+          </label>
+          <div class="grid grid-cols-2 gap-2 text-xs font-bold text-slate-300">
+            <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="gear-board" checked class="rounded border-slate-700 bg-slate-950 text-cyan-500"> ビート板</label>
+            <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="gear-buoy" checked class="rounded border-slate-700 bg-slate-950 text-cyan-500"> プルブイ</label>
+            <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="gear-paddle" checked class="rounded border-slate-700 bg-slate-950 text-cyan-500"> パドル</label>
+            <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="gear-fin" checked class="rounded border-slate-700 bg-slate-950 text-cyan-500"> フィン</label>
+          </div>
+        </div>
+
+        <button onclick="generateAllLanes()" class="w-full py-3.5 bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 text-slate-950 font-black tracking-wider text-sm rounded-xl neon-glow-btn transition-all duration-300 flex items-center justify-center gap-2">
+          <i data-lucide="cpu" class="w-4 h-4"></i> メニュー自動再生成
+        </button>
+      </div>
+    </aside>
+
+    <!-- メイン表示領域 -->
+    <main class="lg:col-span-8 xl:col-span-9 space-y-6">
+      <div class="grid grid-cols-1 xl:grid-cols-3 gap-5" id="lanes-board">
+        <!-- JSでレーンカードが動的挿入されます -->
+      </div>
+    </main>
+
+  </div>
+</div>
+
+<!-- 3. SWIM SHEET (印刷専用 A4個別出力レイアウト) -->
+<div class="print-only print-container" id="print-sheet-container">
+  <!-- JSで1レーン1ページ単位のHTMLが生成されます -->
+</div>
+
+<script>
+// グローバル状態
+const PASSCODE = "swim2026";
+let lanesData = {
+  A: { enabled: true, name: "Lane A", basePaceSec: 70, totalDist: 0, totalTimeSec: 0, items: [] },
+  B: { enabled: true, name: "Lane B", basePaceSec: 80, totalDist: 0, totalTimeSec: 0, items: [] },
+  C: { enabled: true, name: "Lane C", basePaceSec: 95, totalDist: 0, totalTimeSec: 0, items: [] }
+};
+
+// パスコード認証
+function handleAuth(e) {
+  e.preventDefault();
+  const input = document.getElementById('passcode-input').value;
+  if (input === PASSCODE) {
+    document.getElementById('auth-screen').classList.add('hidden');
+    document.getElementById('app-container').classList.remove('hidden');
+    generateAllLanes();
+  } else {
+    document.getElementById('auth-error').classList.remove('hidden');
+  }
+}
+
+// 時刻変換ユーティリティ
+function parsePaceToSec(str) {
+  if (!str) return 80;
+  if (str.includes("'")) {
+    const parts = str.split("'");
+    const m = parseInt(parts[0]) || 0;
+    const s = parseInt(parts[1]) || 0;
+    return m * 60 + s;
+  }
+  return parseInt(str) || 80;
+}
+
+function formatSecToMinSecStr(totalSec) {
+  const m = Math.floor(totalSec / 60);
+  const s = totalSec % 60;
+  return `${m}'${String(s).padStart(2, '0')}`;
+}
+
+function formatClockTime(totalSec) {
+  const h = Math.floor(totalSec / 3600) % 24;
+  const m = Math.floor((totalSec % 3600) / 60);
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+}
+
+// 旧バージョン準拠のメニュー作成ロジック
+function generateAllLanes() {
+  const targetDist = parseInt(document.getElementById('target-distance').value);
+  const poolLen = parseInt(document.querySelector('input[name="pool-length"]:checked').value);
+
+  const gear = {
+    board: document.getElementById('gear-board').checked,
+    buoy: document.getElementById('gear-buoy').checked,
+    paddle: document.getElementById('gear-paddle').checked,
+    fin: document.getElementById('gear-fin').checked
+  };
+
+  const laneKeys = ['A', 'B', 'C'];
+  laneKeys.forEach(key => {
+    const enable = document.getElementById(`lane-${key.toLowerCase()}-enable`).checked;
+    const basePaceStr = document.getElementById(`lane-${key.toLowerCase()}-base`).value;
+    const basePaceSec = parsePaceToSec(basePaceStr);
+
+    lanesData[key].enabled = enable;
+    lanesData[key].basePaceSec = basePaceSec;
+
+    if (!enable) {
+      lanesData[key].items = [];
+      return;
+    }
+
+    lanesData[key].items = buildOldVersionMenu(targetDist, poolLen, basePaceSec, gear);
+  });
+
+  recalculateAll();
+}
+
+function buildOldVersionMenu(targetDist, poolLen, basePaceSec, gear) {
+  let items = [];
+  const adjustDist = (d) => (poolLen === 50 && d % 50 !== 0) ? Math.ceil(d / 50) * 50 : d;
+
+  // 1. Warm up
+  const wuDist = adjustDist(targetDist >= 4000 ? 400 : 300);
+  items.push({ section: 'Warm up', style: 'Choice', dist: wuDist, reps: 1, circleSec: Math.round((wuDist / 100) * basePaceSec * 1.25), intensity: 'A1' });
+
+  // 2. Drill
+  const drillDist = adjustDist(50);
+  items.push({ section: 'Drill', style: 'Form Drill', dist: drillDist, reps: 4, circleSec: Math.round((drillDist / 100) * basePaceSec * 1.4), intensity: 'A1' });
+
+  // 3. Kick
+  let kickStyle = 'Kick (Choice)';
+  if (gear.board) kickStyle = 'Kick W/Board';
+  else if (gear.fin) kickStyle = 'Kick W/Fin';
+  const kickDist = adjustDist(50);
+  const kickReps = targetDist >= 4000 ? 6 : 4;
+  items.push({ section: 'Kick', style: kickStyle, dist: kickDist, reps: kickReps, circleSec: Math.round((kickDist / 100) * basePaceSec * 1.35), intensity: 'A2' });
+
+  // 4. Pull
+  let pullStyle = 'Pull (Choice)';
+  if (gear.buoy && gear.paddle) pullStyle = 'Pull W/Buoy&Paddle';
+  else if (gear.buoy) pullStyle = 'Pull W/Buoy';
+  const pullDist = adjustDist(100);
+  const pullReps = 4;
+  items.push({ section: 'Pull', style: pullStyle, dist: pullDist, reps: pullReps, circleSec: Math.round((pullDist / 100) * basePaceSec * 1.2), intensity: 'AT' });
+
+  // 6. Down（計算上先に確保）
+  const downDist = adjustDist(200);
+
+  // 5. Main (残距離から算出)
+  const fixedSum = (wuDist) + (drillDist * 4) + (kickDist * kickReps) + (pullDist * pullReps) + downDist;
+  let remDist = targetDist - fixedSum;
+  if (remDist < 300) remDist = 300;
+
+  let mainDist = 100;
+  if (targetDist >= 5000) mainDist = 200;
+  mainDist = adjustDist(mainDist);
+
+  let mainReps = Math.max(2, Math.round(remDist / mainDist));
+  items.push({ section: 'Main', style: 'Fr Pace', dist: mainDist, reps: mainReps, circleSec: Math.round((mainDist / 100) * basePaceSec * 1.1), intensity: 'EN1' });
+
+  // Down
+  items.push({ section: 'Down', style: 'Easy Choice', dist: downDist, reps: 1, circleSec: Math.round((downDist / 100) * basePaceSec * 1.4), intensity: 'A1' });
+
+  return items;
+}
+
+// タイムラインおよび距離・時間の高速再計算
+function recalculateAll() {
+  const startTimeStr = document.getElementById('start-time').value || "16:30";
+  const [startH, startM] = startTimeStr.split(':').map(Number);
+  const startSecBase = (startH * 3600) + (startM * 60);
+
+  const laneKeys = ['A', 'B', 'C'];
+
+  laneKeys.forEach(key => {
+    const lane = lanesData[key];
+    lane.enabled = document.getElementById(`lane-${key.toLowerCase()}-enable`).checked;
+    if (!lane.enabled) return;
+
+    let currentSec = startSecBase;
+    let totalD = 0;
+
+    lane.items.forEach((item) => {
+      item.startTimeStr = formatClockTime(currentSec);
+      const setDist = item.dist * item.reps;
+      const setDuration = item.circleSec * item.reps;
+      totalD += setDist;
+      currentSec += setDuration;
+      item.endTimeStr = formatClockTime(currentSec);
+    });
+
+    lane.totalDist = totalD;
+    lane.totalTimeSec = currentSec - startSecBase;
+  });
+
+  renderBoard();
+  renderPrintSheet();
+}
+
+function deleteItem(laneKey, idx) {
+  lanesData[laneKey].items.splice(idx, 1);
+  recalculateAll();
+}
+
+function updateItemVal(laneKey, idx, field, val) {
+  if (field === 'style' || field === 'intensity') {
+    lanesData[laneKey].items[idx][field] = val;
+  } else if (field === 'circleSecStr') {
+    lanesData[laneKey].items[idx].circleSec = parsePaceToSec(val);
+  } else {
+    lanesData[laneKey].items[idx][field] = parseInt(val) || 0;
+  }
+  recalculateAll();
+}
+
+function getIntensityBadgeClass(intensity) {
+  switch(intensity) {
+    case 'A1': return 'bg-slate-800 text-slate-300 border-slate-700';
+    case 'A2': return 'bg-blue-950 text-blue-400 border-blue-800';
+    case 'AT': return 'bg-cyan-950 text-cyan-400 border-cyan-800';
+    case 'EN1': return 'bg-amber-950 text-amber-400 border-amber-800';
+    case 'AN1': return 'bg-rose-950 text-rose-400 border-rose-800';
+    default: return 'bg-slate-800 text-slate-300 border-slate-700';
+  }
+}
+
+// 画面表示描画
+function renderBoard() {
+  const container = document.getElementById('lanes-board');
+  container.innerHTML = '';
+
+  const laneKeys = ['A', 'B', 'C'];
+  const colors = { A: 'cyan', B: 'blue', C: 'indigo' };
+
+  laneKeys.forEach(key => {
+    const lane = lanesData[key];
+    if (!lane.enabled) return;
+
+    const c = colors[key];
+    const totalMin = Math.round(lane.totalTimeSec / 60);
+
+    let html = `
+      <div class="rounded-2xl bg-slate-900/80 border border-${c}-500/30 neon-border-${c} backdrop-blur-md flex flex-col h-full overflow-hidden">
+        <!-- ヘッダー -->
+        <div class="p-4 border-b border-slate-800 bg-slate-950/60 flex items-center justify-between">
+          <div>
+            <span class="text-xs font-cyber text-${c}-400 font-bold tracking-wider">${lane.name}</span>
+            <div class="flex items-center gap-2 mt-0.5">
+              <span class="text-xs text-slate-400 font-mono-code">Total: <b class="text-white">${lane.totalDist}m</b></span>
+              <span class="text-xs text-slate-500">|</span>
+              <span class="text-xs text-slate-400 font-mono-code">Time: <b class="text-white">${totalMin} min</b></span>
+            </div>
+          </div>
+          <div class="text-right">
+            <span class="text-[10px] text-slate-500 font-mono-code block">基準タイム</span>
+            <span class="text-sm font-black font-mono-code text-${c}-400">${formatSecToMinSecStr(lane.basePaceSec)}</span>
+          </div>
+        </div>
+
+        <!-- アイテムリスト -->
+        <div class="p-3 space-y-2.5 flex-1 overflow-y-auto max-h-[calc(100vh-280px)]">
+    `;
+
+    lane.items.forEach((item, idx) => {
+      const circleStr = formatSecToMinSecStr(item.circleSec);
+      html += `
+        <div class="p-3 rounded-xl bg-slate-950/90 border border-slate-800/80 hover:border-slate-700 transition-all space-y-2 group">
+          <div class="flex items-center justify-between text-xs">
+            <!-- タイムライン -->
+            <div class="flex items-center gap-1.5 font-mono-code text-[11px] text-slate-400">
+              <span class="text-cyan-400 font-bold">${item.startTimeStr}</span>
+              <span>-</span>
+              <span>${item.endTimeStr}</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <select onchange="updateItemVal('${key}', ${idx}, 'intensity', this.value)" class="px-1.5 py-0.5 rounded text-[10px] font-bold font-mono-code border ${getIntensityBadgeClass(item.intensity)} bg-transparent focus:outline-none cursor-pointer">
+                <option value="A1" ${item.intensity==='A1'?'selected':''}>A1</option>
+                <option value="A2" ${item.intensity==='A2'?'selected':''}>A2</option>
+                <option value="AT" ${item.intensity==='AT'?'selected':''}>AT</option>
+                <option value="EN1" ${item.intensity==='EN1'?'selected':''}>EN1</option>
+                <option value="AN1" ${item.intensity==='AN1'?'selected':''}>AN1</option>
+              </select>
+              <button onclick="deleteItem('${key}', ${idx})" class="text-slate-600 hover:text-rose-400 transition-colors p-0.5">
+                <i data-lucide="x" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-12 gap-2 items-center">
+            <div class="col-span-4">
+              <span class="text-[10px] font-bold text-slate-500 uppercase block font-mono-code">${item.section}</span>
+              <input type="text" value="${item.style}" onchange="updateItemVal('${key}', ${idx}, 'style', this.value)" class="w-full bg-transparent font-bold text-xs text-slate-200 border-b border-transparent hover:border-slate-700 focus:border-cyan-500 focus:outline-none">
+            </div>
+
+            <div class="col-span-8 flex items-center justify-end gap-1.5 text-xs font-mono-code">
+              <input type="number" value="${item.dist}" step="25" onchange="updateItemVal('${key}', ${idx}, 'dist', this.value)" class="w-12 px-1 py-0.5 bg-slate-900 border border-slate-800 rounded text-center text-cyan-300 font-bold focus:outline-none focus:border-cyan-500">
+              <span class="text-slate-500">m</span>
+              <span class="text-slate-600">×</span>
+              <input type="number" value="${item.reps}" step="1" onchange="updateItemVal('${key}', ${idx}, 'reps', this.value)" class="w-10 px-1 py-0.5 bg-slate-900 border border-slate-800 rounded text-center text-white font-bold focus:outline-none focus:border-cyan-500">
+              <span class="text-slate-500">本</span>
+              <span class="text-slate-600">@</span>
+              <input type="text" value="${circleStr}" onchange="updateItemVal('${key}', ${idx}, 'circleSecStr', this.value)" class="w-14 px-1 py-0.5 bg-slate-900 border border-slate-800 rounded text-center text-amber-400 font-bold focus:outline-none focus:border-cyan-500">
+            </div>
+          </div>
+        </div>
+      `;
+    });
+
+    html += `
+        </div>
+      </div>
+    `;
+
+    container.innerHTML += html;
+  });
+
+  lucide.createIcons();
+}
+
+// 印刷用 SWIM SHEET 描画（レーンごとに1ページ分離）
+function renderPrintSheet() {
+  const container = document.getElementById('print-sheet-container');
+  container.innerHTML = '';
+
+  const laneKeys = ['A', 'B', 'C'];
+  const currentDate = new Date().toLocaleDateString('ja-JP');
+  const startTimeVal = document.getElementById('start-time').value;
+
+  laneKeys.forEach(key => {
+    const lane = lanesData[key];
+    if (!lane.enabled) return;
+
+    let rowsHtml = '';
+    lane.items.forEach(item => {
+      rowsHtml += `
+        <tr>
+          <td class="font-mono-code text-center font-bold" style="width: 12%; font-size: 11pt;">${item.startTimeStr}</td>
+          <td class="font-bold" style="width: 18%; font-size: 11pt;">${item.section}</td>
+          <td class="font-bold" style="width: 38%; font-size: 11pt;">${item.style}</td>
+          <td class="font-mono-code text-center font-bold" style="width: 14%; font-size: 11pt;">${item.dist}m × ${item.reps}</td>
+          <td class="font-mono-code text-center font-bold" style="width: 10%; font-size: 11pt;">${formatSecToMinSecStr(item.circleSec)}</td>
+          <td class="font-mono-code text-center font-bold" style="width: 8%; font-size: 10pt;">${item.intensity}</td>
+        </tr>
+      `;
+    });
+
+    const pageHtml = `
+      <div class="swim-sheet-page">
+        <div>
+          <!-- シートヘッダー -->
+          <div style="border-bottom: 3px solid #000; padding-bottom: 8px; margin-bottom: 16px; display: flex; justify-between; align-items: flex-end;">
+            <div>
+              <h1 style="font-size: 22pt; font-weight: 900; margin: 0; line-height: 1;">SWIM SHEET - ${lane.name}</h1>
+              <p style="margin: 4px 0 0 0; font-size: 10pt; font-weight: bold; color: #333;">AquaPlan PRO v4.0 Training Menu</p>
+            </div>
+            <div style="text-align: right; font-family: 'JetBrains Mono', monospace; font-size: 10pt; font-weight: bold;">
+              <p style="margin: 0;">DATE: ${currentDate}</p>
+              <p style="margin: 2px 0 0 0;">START TIME: ${startTimeVal}</p>
+            </div>
+          </div>
+
+          <!-- サマリー情報 -->
+          <div style="display: flex; gap: 20px; margin-bottom: 16px; background-color: #f8fafc; padding: 10px; border: 1px solid #000; font-family: 'JetBrains Mono', monospace; font-weight: bold; font-size: 11pt;">
+            <div>TOTAL DISTANCE: <span style="font-size: 13pt;">${lane.totalDist}m</span></div>
+            <div>TOTAL TIME: <span style="font-size: 13pt;">${Math.round(lane.totalTimeSec / 60)} min</span></div>
+            <div>BASE PACE: <span style="font-size: 13pt;">${formatSecToMinSecStr(lane.basePaceSec)} / 100m</span></div>
+          </div>
+
+          <!-- メニューテーブル -->
+          <table>
+            <thead>
+              <tr>
+                <th>TIME</th>
+                <th>SECTION</th>
+                <th>STYLE / MENU</th>
+                <th>SET</th>
+                <th>CIRCLE</th>
+                <th>INT</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rowsHtml}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- シートフッター -->
+        <div style="border-top: 1px solid #000; pt: 8px; font-size: 9pt; display: flex; justify-content: space-between; font-weight: bold; color: #444;">
+          <span>AquaPlan PRO v4.0</span>
+          <span>${lane.name} - Page 1 of 1</span>
+        </div>
+      </div>
+    `;
+
+    container.innerHTML += pageHtml;
+  });
+}
+
+function executePrint() {
+  window.print();
+}
+
+// データ永続化
+function saveData() {
+  const payload = {
+    lanesData: lanesData,
+    startTime: document.getElementById('start-time').value,
+    targetDist: document.getElementById('target-distance').value
+  };
+  localStorage.setItem('aquaplan_v4_oldlogic_config', JSON.stringify(payload));
+  alert('⚡ 設定とメニューデータをローカルストレージに保存しました。');
+}
+
+function loadData() {
+  const saved = localStorage.getItem('aquaplan_v4_oldlogic_config');
+  if (!saved) {
+    alert('保存されたデータが見つかりません。');
+    return;
+  }
+  const payload = JSON.parse(saved);
+  lanesData = payload.lanesData;
+  if (payload.startTime) document.getElementById('start-time').value = payload.startTime;
+  if (payload.targetDist) {
+    document.getElementById('target-distance').value = payload.targetDist;
+    document.getElementById('target-dist-val').innerText = payload.targetDist + 'm';
+  }
+  recalculateAll();
+  alert('⚡ データを復元しました。');
+}
+
+// 初期化
+window.addEventListener('DOMContentLoaded', () => {
+  lucide.createIcons();
+});
+</script>
+</body>
+</html>
