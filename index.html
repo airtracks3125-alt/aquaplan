@@ -1,0 +1,1365 @@
+<!DOCTYPE html>
+<html lang="ja" class="h-full bg-slate-950">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AquaPlan PRO v4.0</title>
+<!-- Tailwind CSS & Lucide Icons -->
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Noto+Sans+JP:wght@400;500;700;900&family=JetBrains+Mono:wght@400;700&display=swap');
+
+  body {
+    font-family: 'Noto Sans JP', sans-serif;
+  }
+  .font-cyber {
+    font-family: 'Orbitron', sans-serif;
+  }
+  .font-mono-code {
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* 画面表示用ネオンエフェクト */
+  .neon-border-cyan { box-shadow: 0 0 10px rgba(6, 182, 212, 0.2), inset 0 0 10px rgba(6, 182, 212, 0.1); }
+  .neon-border-blue { box-shadow: 0 0 10px rgba(59, 130, 246, 0.2), inset 0 0 10px rgba(59, 130, 246, 0.1); }
+  .neon-border-indigo { box-shadow: 0 0 10px rgba(99, 102, 241, 0.2), inset 0 0 10px rgba(99, 102, 241, 0.1); }
+  .neon-glow-btn { box-shadow: 0 0 15px rgba(6, 182, 212, 0.4); }
+  .neon-glow-btn:hover { box-shadow: 0 0 25px rgba(6, 182, 212, 0.7); }
+
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: #090d16; }
+  ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 3px; }
+
+  /* ライブラリ機能用UI（タグフィルターチップ・タブ切り替え） */
+  .lib-chip {
+    padding: 0.3rem 0.65rem;
+    border-radius: 9999px;
+    font-size: 0.65rem;
+    font-weight: 700;
+    border: 1px solid rgb(51 65 85);
+    background: rgba(2, 6, 23, 0.6);
+    color: rgb(148 163 184);
+    font-family: 'JetBrains Mono', monospace;
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .lib-chip:hover { border-color: rgba(6, 182, 212, 0.5); color: #22d3ee; }
+  .lib-chip-active {
+    background: rgba(6, 182, 212, 0.2);
+    border-color: rgba(6, 182, 212, 0.6);
+    color: #22d3ee;
+    box-shadow: 0 0 8px rgba(6, 182, 212, 0.3);
+  }
+  .lib-tab-btn {
+    color: rgb(100 116 139);
+    background: transparent;
+    border-bottom: 2px solid transparent;
+    transition: all .15s;
+  }
+  .lib-tab-btn:hover { color: rgb(203 213 225); }
+  .lib-tab-active {
+    color: #22d3ee !important;
+    border-bottom-color: #22d3ee !important;
+  }
+
+  /* --------------------------------------------------
+     旧バージョン準拠 印刷用CSS (完全に旧仕様を再現)
+     ※A4 1枚に確実に収まるよう、余白・パディングのみを調整（黒枠・ヘッダー構造・
+       コーチ指示欄などのデザイン/レイアウトそのものは変更していません）
+  -------------------------------------------------- */
+  @page {
+    size: A4;
+    margin: 10mm;
+  }
+
+  @media print {
+    body > *:not(.print-only) {
+      display: none !important;
+    }
+    .print-only {
+      display: block !important;
+      padding: 0.5rem !important; /* 外側余白を引き締め、1枚目のレーンA分のスペースを確保 */
+    }
+    body {
+      background-color: white !important;
+      color: black !important;
+      display: block !important;
+      height: auto !important;
+      min-height: 0 !important;
+      font-size: 14px !important;
+    }
+    /* タイトルバー・各カード内ヘッダー(border-b-4 pb-2 mb-4)の余白を引き締め */
+    .print-only .mb-4 {
+      margin-bottom: 0.5rem !important;
+    }
+    .print-only .pb-2 {
+      padding-bottom: 0.35rem !important;
+    }
+    /* コーチ指示欄(pt-3)の上余白を引き締め */
+    .print-only .pt-3 {
+      padding-top: 0.5rem !important;
+    }
+    .print-card {
+      border: 3px solid #000 !important;
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
+      page-break-after: always !important;
+      break-after: page !important;
+      margin-bottom: 0 !important;
+      padding: 1.15rem !important; /* 旧: 1.75rem → A4 1枚に収まるよう引き締め */
+      border-radius: 8px !important;
+      box-sizing: border-box !important;
+      background: white !important;
+    }
+    .print-card:last-child {
+      page-break-after: auto !important;
+      break-after: auto !important;
+    }
+    /* 表のセル内パディング(py-2)をコンパクト化。横方向(px-2.5)は据え置き */
+    .print-card table th,
+    .print-card table td {
+      padding-top: 0.3rem !important;
+      padding-bottom: 0.3rem !important;
+    }
+    .print-card table td {
+      line-height: 1.3 !important;
+    }
+    table {
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
+    }
+    tr {
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
+    }
+  }
+
+  @media screen {
+    .print-only {
+      display: none !important;
+    }
+  }
+</style>
+</head>
+<body class="h-full text-slate-200 antialiased selection:bg-cyan-500 selection:text-slate-950">
+
+<!-- 1. パスコード認証画面 -->
+<div id="auth-screen" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-black">
+  <div class="w-full max-w-md p-8 rounded-2xl bg-slate-900/80 border border-cyan-500/30 neon-border-cyan backdrop-blur-xl relative overflow-hidden">
+    <div class="text-center mb-8">
+      <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-cyan-950/80 border border-cyan-500/40 mb-4 text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.3)]">
+        <i data-lucide="waves" class="w-8 h-8"></i>
+      </div>
+      <h1 class="text-2xl font-black tracking-wider text-white font-cyber">AquaPlan <span class="text-cyan-400">PRO</span> <span class="text-xs px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">v4.0</span></h1>
+      <p class="text-xs text-slate-400 mt-2">SECURITY AUTHENTICATION</p>
+    </div>
+
+    <form onsubmit="handleAuth(event)" class="space-y-5">
+      <div>
+        <label class="block text-xs font-bold text-cyan-300 mb-2 tracking-widest uppercase flex items-center gap-1.5">
+          <i data-lucide="key-round" class="w-3.5 h-3.5"></i> Access Passcode
+        </label>
+        <input type="password" id="passcode-input" placeholder="パスコードを入力" class="w-full px-4 py-3 bg-slate-950/80 border border-slate-700 rounded-xl text-center text-lg font-mono-code tracking-widest text-white focus:outline-none focus:border-cyan-400">
+      </div>
+      <p id="auth-error" class="text-xs text-rose-500 text-center hidden font-bold">合言葉が正しくありません</p>
+      <button type="submit" class="w-full py-3.5 bg-gradient-to-r from-cyan-500 to-blue-600 text-slate-950 font-black tracking-wider rounded-xl neon-glow-btn transition-all duration-300 flex items-center justify-center gap-2">
+        <i data-lucide="shield-check" class="w-5 h-5"></i> アクセス承認
+      </button>
+    </form>
+  </div>
+</div>
+
+<!-- 2. メイン画面 (UI) -->
+<div id="app-container" class="hidden min-h-screen flex flex-col no-print bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-black">
+  
+  <!-- ヘッダー -->
+  <header class="border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-md sticky top-0 z-40">
+    <div class="max-w-[1700px] mx-auto px-4 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="p-2 rounded-lg bg-cyan-950 border border-cyan-500/30 text-cyan-400">
+          <i data-lucide="waves" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <span class="font-cyber font-black text-lg tracking-wider text-white">AquaPlan <span class="text-cyan-400">PRO</span> <span class="text-[10px] font-mono-code px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">v4.0</span></span>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <button onclick="saveData()" class="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-xs font-bold text-slate-300 flex items-center gap-1.5">
+          <i data-lucide="save" class="w-3.5 h-3.5 text-cyan-400"></i> 保存
+        </button>
+        <button onclick="loadData()" class="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-xs font-bold text-slate-300 flex items-center gap-1.5">
+          <i data-lucide="download" class="w-3.5 h-3.5 text-emerald-400"></i> 復元
+        </button>
+        <button onclick="openLibraryModal()" class="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-xs font-bold text-slate-300 flex items-center gap-1.5">
+          <i data-lucide="library" class="w-3.5 h-3.5 text-indigo-400"></i> ライブラリ
+        </button>
+        <div class="h-4 w-px bg-slate-800 mx-1"></div>
+        <button onclick="printMultiLayout()" class="px-4 py-1.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-[0_0_10px_rgba(6,182,212,0.3)]">
+          <i data-lucide="printer" class="w-4 h-4"></i> 📄 SWIM SHEET 印刷
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- メインレイアウト -->
+  <div class="flex-1 max-w-[1700px] w-full mx-auto p-4 lg:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+    
+    <!-- サイドバー -->
+    <aside class="lg:col-span-4 xl:col-span-3 space-y-5">
+      <div class="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 backdrop-blur-md space-y-5">
+        <div class="flex items-center gap-2 border-b border-slate-800 pb-3">
+          <i data-lucide="sliders" class="w-4 h-4 text-cyan-400"></i>
+          <h2 class="text-sm font-bold tracking-wider text-slate-200">コンディション・設定</h2>
+        </div>
+
+        <div class="space-y-4">
+          <div>
+            <label class="block text-xs font-bold text-slate-400 mb-1 flex items-center gap-1">
+              <i data-lucide="clock" class="w-3.5 h-3.5 text-cyan-400"></i> 開始時刻
+            </label>
+            <input type="time" id="start-time" value="16:30" onchange="recalculateAll()" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-sm font-mono-code text-cyan-300 focus:outline-none focus:border-cyan-500">
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-400 mb-1">プール環境</label>
+            <div class="grid grid-cols-2 gap-2">
+              <label class="flex items-center justify-center p-2 rounded-lg bg-slate-950 border border-slate-800 cursor-pointer text-xs font-bold text-slate-300 has-[:checked]:border-cyan-500 has-[:checked]:text-cyan-400">
+                <input type="radio" name="pool-length" value="25" checked onchange="generateAllLanes()" class="hidden"> Short (25m)
+              </label>
+              <label class="flex items-center justify-center p-2 rounded-lg bg-slate-950 border border-slate-800 cursor-pointer text-xs font-bold text-slate-300 has-[:checked]:border-cyan-500 has-[:checked]:text-cyan-400">
+                <input type="radio" name="pool-length" value="50" onchange="generateAllLanes()" class="hidden"> Long (50m)
+              </label>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-400 mb-1 flex items-center justify-between">
+              <span>目標総距離</span>
+              <span id="target-dist-val" class="text-cyan-400 font-mono-code font-bold">4000m</span>
+            </label>
+            <input type="range" id="target-distance" min="2000" max="8000" step="100" value="4000" oninput="document.getElementById('target-dist-val').innerText = this.value + 'm'" onchange="generateAllLanes()" class="w-full accent-cyan-400 bg-slate-950 h-2 rounded-lg">
+          </div>
+        </div>
+
+        <!-- レーン設定 -->
+        <div class="border-t border-slate-800 pt-4 space-y-3">
+          <label class="block text-xs font-bold text-slate-400">レーン構成・基準タイム (100m)</label>
+          <div class="space-y-2">
+            <div class="p-2.5 rounded-lg bg-slate-950/80 border border-slate-800/80 flex items-center justify-between gap-2">
+              <label class="flex items-center gap-2 cursor-pointer text-xs font-bold text-cyan-400">
+                <input type="checkbox" id="lane-a-enable" checked onchange="generateAllLanes()" class="rounded border-slate-700 bg-slate-900 text-cyan-500"> Lane A
+              </label>
+              <div class="flex items-center gap-1 text-xs">
+                <span class="text-slate-500 font-mono-code">基準:</span>
+                <input type="text" id="lane-a-base" value="1'10" onchange="generateAllLanes()" class="w-16 px-1.5 py-1 bg-slate-900 border border-slate-700 rounded text-center font-mono-code text-white text-xs">
+              </div>
+            </div>
+            <div class="p-2.5 rounded-lg bg-slate-950/80 border border-slate-800/80 flex items-center justify-between gap-2">
+              <label class="flex items-center gap-2 cursor-pointer text-xs font-bold text-blue-400">
+                <input type="checkbox" id="lane-b-enable" checked onchange="generateAllLanes()" class="rounded border-slate-700 bg-slate-900 text-blue-500"> Lane B
+              </label>
+              <div class="flex items-center gap-1 text-xs">
+                <span class="text-slate-500 font-mono-code">基準:</span>
+                <input type="text" id="lane-b-base" value="1'20" onchange="generateAllLanes()" class="w-16 px-1.5 py-1 bg-slate-900 border border-slate-700 rounded text-center font-mono-code text-white text-xs">
+              </div>
+            </div>
+            <div class="p-2.5 rounded-lg bg-slate-950/80 border border-slate-800/80 flex items-center justify-between gap-2">
+              <label class="flex items-center gap-2 cursor-pointer text-xs font-bold text-indigo-400">
+                <input type="checkbox" id="lane-c-enable" checked onchange="generateAllLanes()" class="rounded border-slate-700 bg-slate-900 text-indigo-500"> Lane C
+              </label>
+              <div class="flex items-center gap-1 text-xs">
+                <span class="text-slate-500 font-mono-code">基準:</span>
+                <input type="text" id="lane-c-base" value="1'35" onchange="generateAllLanes()" class="w-16 px-1.5 py-1 bg-slate-900 border border-slate-700 rounded text-center font-mono-code text-white text-xs">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- マテリアル -->
+        <div class="border-t border-slate-800 pt-4 space-y-2">
+          <label class="block text-xs font-bold text-slate-400">使用マテリアル</label>
+          <div class="grid grid-cols-2 gap-2 text-xs font-bold text-slate-300">
+            <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="gear-board" checked class="rounded border-slate-700 bg-slate-950 text-cyan-500"> ビート板</label>
+            <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="gear-buoy" checked class="rounded border-slate-700 bg-slate-950 text-cyan-500"> プルブイ</label>
+            <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="gear-paddle" checked class="rounded border-slate-700 bg-slate-950 text-cyan-500"> パドル</label>
+            <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="gear-fin" checked class="rounded border-slate-700 bg-slate-950 text-cyan-500"> フィン</label>
+          </div>
+        </div>
+
+        <button onclick="generateAllLanes()" class="w-full py-3.5 bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 text-slate-950 font-black tracking-wider text-sm rounded-xl neon-glow-btn transition-all duration-300 flex items-center justify-center gap-2">
+          <i data-lucide="cpu" class="w-4 h-4"></i> メニュー自動再生成
+        </button>
+      </div>
+    </aside>
+
+    <!-- メイン表示領域 -->
+    <main class="lg:col-span-8 xl:col-span-9 space-y-6">
+      <div class="grid grid-cols-1 xl:grid-cols-3 gap-5" id="lanes-board"></div>
+    </main>
+
+  </div>
+</div>
+
+<!-- 3. 旧バージョン完全互換 SWIM SHEET (印刷専用エリア) -->
+<div class="print-only p-4 bg-white text-black min-h-screen">
+  <div class="flex justify-between items-center border-b-4 border-black pb-2 mb-4">
+    <h1 class="text-2xl font-black">AquaPlan SWIM SHEET</h1>
+    <span id="print-sheet-date" class="text-sm font-bold text-gray-700"></span>
+  </div>
+  <div id="print-lanes-container" class="space-y-6"></div>
+</div>
+
+<!-- 4. メニューライブラリ モーダル (検索/タグフィルタ/新規登録) -->
+<div id="library-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 overscroll-contain" onclick="if(event.target===this) closeLibraryModal()" onwheel="event.stopPropagation()">
+  <div class="w-full max-w-5xl max-h-[85vh] rounded-2xl bg-slate-900 border border-slate-700 neon-border-cyan backdrop-blur-md flex flex-col overflow-hidden">
+    <div class="p-4 border-b border-slate-800 flex items-center justify-between shrink-0 flex-shrink-0">
+      <div class="flex items-center gap-2">
+        <i data-lucide="library" class="w-5 h-5 text-cyan-400"></i>
+        <h2 class="font-cyber font-black text-white tracking-wider">MENU LIBRARY</h2>
+      </div>
+      <button onclick="closeLibraryModal()" class="text-slate-400 hover:text-white">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+    </div>
+
+    <div class="flex border-b border-slate-800 shrink-0 flex-shrink-0">
+      <button type="button" id="lib-tab-btn-search" onclick="switchLibraryTab('search')" class="lib-tab-btn lib-tab-active flex-1 py-2.5 text-xs font-bold flex items-center justify-center gap-1.5">
+        <i data-lucide="search" class="w-3.5 h-3.5"></i> ライブラリ検索
+      </button>
+      <button type="button" id="lib-tab-btn-create" onclick="switchLibraryTab('create')" class="lib-tab-btn flex-1 py-2.5 text-xs font-bold flex items-center justify-center gap-1.5">
+        <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i> 新規メニュー登録
+      </button>
+    </div>
+
+    <!-- 検索タブ -->
+    <div id="lib-tab-search" class="flex flex-col flex-1 min-h-0">
+      <div class="p-4 border-b border-slate-800 space-y-3 bg-slate-950/40 shrink-0 flex-shrink-0">
+        <input type="text" id="lib-search-text" placeholder="メニュー名で検索..." oninput="renderLibraryResults()" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-sm text-white focus:outline-none focus:border-cyan-500">
+
+        <div>
+          <div class="text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-wider">強度 (Intensity)</div>
+          <div id="lib-chips-intensity" class="flex flex-wrap gap-1.5"></div>
+        </div>
+        <div>
+          <div class="text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-wider">動作 (Phase)</div>
+          <div id="lib-chips-phase" class="flex flex-wrap gap-1.5"></div>
+        </div>
+        <div>
+          <div class="text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-wider">道具 (Gear)</div>
+          <div id="lib-chips-gear" class="flex flex-wrap gap-1.5"></div>
+        </div>
+        <div>
+          <div class="text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-wider">種目 (Style)</div>
+          <div id="lib-chips-style" class="flex flex-wrap gap-1.5"></div>
+        </div>
+
+        <div class="flex items-center justify-between gap-2 pt-1">
+          <div id="library-result-count" class="text-[11px] text-slate-500 font-mono-code"></div>
+          <select id="lib-target-lane" class="px-2 py-1.5 bg-slate-950 border border-cyan-700 rounded-lg text-xs text-cyan-300 font-bold focus:outline-none">
+            <option value="A">追加先: Lane A</option>
+            <option value="B">追加先: Lane B</option>
+            <option value="C">追加先: Lane C</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="library-results" class="p-4 overflow-y-auto flex-1 min-h-0 overscroll-contain touch-pan-y space-y-2"></div>
+    </div>
+
+    <!-- 新規メニュー登録タブ -->
+    <div id="lib-tab-create" class="hidden flex flex-col flex-1 min-h-0">
+      <div class="flex-1 min-h-0 overflow-y-auto overscroll-contain touch-pan-y p-4">
+        <form id="new-library-form" onsubmit="submitNewLibraryItem(event)" class="space-y-4">
+          <div>
+            <label class="block text-xs font-bold text-slate-400 mb-1">メニュー名</label>
+            <input type="text" id="nf-name" required class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-sm text-white focus:outline-none focus:border-cyan-500">
+          </div>
+
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+            <div>
+              <label class="block text-[10px] font-bold text-slate-500 mb-1">動作(Phase)</label>
+              <select id="nf-phase" onchange="togglePhaseDependentFields(); updateNewFormCirclePreview();" class="w-full px-2 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-200"></select>
+            </div>
+            <div id="nf-drilltype-wrap" class="hidden">
+              <label class="block text-[10px] font-bold text-slate-500 mb-1">Drill Type</label>
+              <select id="nf-drilltype" onchange="updateNewFormCirclePreview()" class="w-full px-2 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-200"></select>
+            </div>
+            <div>
+              <label class="block text-[10px] font-bold text-slate-500 mb-1">強度(Intensity)</label>
+              <select id="nf-intensity" onchange="updateNewFormCirclePreview()" class="w-full px-2 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-200"></select>
+            </div>
+            <div>
+              <label class="block text-[10px] font-bold text-slate-500 mb-1">種目(Style)</label>
+              <select id="nf-style" onchange="updateNewFormCirclePreview()" class="w-full px-2 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-200"></select>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-[10px] font-bold text-slate-500 mb-1">使用道具 (複数選択可)</label>
+            <div id="nf-gear-checks" class="flex flex-wrap gap-2"></div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-[10px] font-bold text-slate-500 mb-1">距離(m)</label>
+              <input type="number" id="nf-dist" value="100" step="25" oninput="updateNewFormCirclePreview()" class="w-full px-2 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white">
+            </div>
+            <div>
+              <label class="block text-[10px] font-bold text-slate-500 mb-1">本数</label>
+              <input type="number" id="nf-reps" value="4" step="1" class="w-full px-2 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white">
+            </div>
+          </div>
+
+          <div id="nf-circle-preview" class="text-xs font-mono-code text-cyan-400 bg-slate-950/60 border border-slate-800 rounded-lg px-3 py-2"></div>
+
+          <div class="border-t border-slate-800 pt-3">
+            <label class="block text-[10px] font-bold text-slate-500 mb-1">本数ルール (repsRule)</label>
+            <div class="grid grid-cols-4 gap-2">
+              <select id="nf-repsrule-type" class="col-span-1 px-2 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-200">
+                <option value="any">any(制限なし)</option>
+                <option value="multiple_of">multiple_of(倍数限定)</option>
+                <option value="exact">exact(固定)</option>
+              </select>
+              <input type="number" id="nf-repsrule-value" placeholder="倍数/固定値" class="px-2 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white">
+              <input type="number" id="nf-repsrule-min" placeholder="最小" value="1" class="px-2 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white">
+              <input type="number" id="nf-repsrule-max" placeholder="最大" value="20" class="px-2 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white">
+            </div>
+          </div>
+
+          <div class="border-t border-slate-800 pt-3">
+            <label class="block text-[10px] font-bold text-slate-500 mb-1">併用不可の道具 (incompatibleGears)</label>
+            <div id="nf-incompatgear-checks" class="flex flex-wrap gap-2"></div>
+          </div>
+
+          <div>
+            <label class="block text-[10px] font-bold text-slate-500 mb-1">併用不可の属性 (カンマ区切り。例: Hypoxic)</label>
+            <input type="text" id="nf-incompatprops" placeholder="Hypoxic, ..." class="w-full px-2 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white">
+          </div>
+
+          <div class="border-t border-slate-800 pt-3">
+            <label class="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-300">
+              <input type="checkbox" id="nf-isComplexSet" onchange="toggleComplexSetFields()" class="rounded border-slate-700 bg-slate-950 text-cyan-500"> 複合セット (Complex Set) として登録
+            </label>
+            <div id="nf-complexset-fields" class="hidden mt-2 space-y-2 p-3 rounded-lg bg-slate-950/60 border border-slate-800">
+              <div class="grid grid-cols-2 gap-2">
+                <div>
+                  <label class="block text-[10px] font-bold text-slate-500 mb-1">セット数</label>
+                  <input type="number" id="nf-setreps" value="3" class="w-full px-2 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white">
+                </div>
+                <div>
+                  <label class="block text-[10px] font-bold text-slate-500 mb-1">セット間Rest(秒)</label>
+                  <input type="number" id="nf-setrest" value="20" class="w-full px-2 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white">
+                </div>
+              </div>
+              <div class="grid grid-cols-4 gap-2">
+                <input type="number" id="nf-sub-dist" placeholder="距離" value="25" class="px-2 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white">
+                <input type="number" id="nf-sub-reps" placeholder="本数" value="4" class="px-2 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white">
+                <input type="text" id="nf-sub-style" placeholder="種目(例:Fr)" class="px-2 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white">
+                <input type="text" id="nf-sub-note" placeholder="メモ" class="px-2 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white">
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-[10px] font-bold text-slate-500 mb-1">Coaching Tip</label>
+            <textarea id="nf-coachingtip" rows="2" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white"></textarea>
+          </div>
+        </form>
+      </div>
+
+      <!-- Footer / Action Buttons (下部固定エリア): スクロールしても常に押せる状態を維持 -->
+      <div class="flex-shrink-0 border-t border-slate-800 p-4">
+        <button type="submit" form="new-library-form" class="w-full py-3 bg-gradient-to-r from-cyan-500 to-blue-600 text-slate-950 font-black rounded-xl neon-glow-btn flex items-center justify-center gap-2">
+          <i data-lucide="save" class="w-4 h-4"></i> ライブラリに保存
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const PASSCODE = "swim2026";
+let lanesData = {
+  A: { enabled: true, name: "Lane A", basePaceSec: 70, coachingTip: "フォームを崩さずサークルキープ。後半までピッチを落とさない。", items: [] },
+  B: { enabled: true, name: "Lane B", basePaceSec: 80, coachingTip: "ストローク効率を意識して大きく泳ぐ。キャッチ位置の固定。", items: [] },
+  C: { enabled: true, name: "Lane C", basePaceSec: 95, coachingTip: "呼吸動作での減速を防ぐ。リズム一定を重視。", items: [] }
+};
+
+function handleAuth(e) {
+  e.preventDefault();
+  if (document.getElementById('passcode-input').value === PASSCODE) {
+    document.getElementById('auth-screen').classList.add('hidden');
+    document.getElementById('app-container').classList.remove('hidden');
+    generateAllLanes();
+  } else {
+    document.getElementById('auth-error').classList.remove('hidden');
+  }
+}
+
+function parsePaceToSec(str) {
+  if (!str) return 80;
+  if (str.includes("'")) {
+    const parts = str.split("'");
+    return (parseInt(parts[0]) || 0) * 60 + (parseInt(parts[1]) || 0);
+  }
+  return parseInt(str) || 80;
+}
+
+function formatSeconds(totalSec) {
+  const m = Math.floor(totalSec / 60);
+  const s = totalSec % 60;
+  return `${m}'${String(s).padStart(2, '0')}`;
+}
+
+function formatClockTime(totalSec) {
+  const h = Math.floor(totalSec / 3600) % 24;
+  const m = Math.floor((totalSec % 3600) / 60);
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+}
+
+// 旧バージョンメニュー構築ロジック
+function generateAllLanes() {
+  const targetDist = parseInt(document.getElementById('target-distance').value);
+  const poolLen = parseInt(document.querySelector('input[name="pool-length"]:checked').value);
+  const gear = {
+    board: document.getElementById('gear-board').checked,
+    buoy: document.getElementById('gear-buoy').checked,
+    paddle: document.getElementById('gear-paddle').checked,
+    fin: document.getElementById('gear-fin').checked
+  };
+
+  ['A', 'B', 'C'].forEach(key => {
+    const enable = document.getElementById(`lane-${key.toLowerCase()}-enable`).checked;
+    const basePaceSec = parsePaceToSec(document.getElementById(`lane-${key.toLowerCase()}-base`).value);
+
+    lanesData[key].enabled = enable;
+    lanesData[key].basePaceSec = basePaceSec;
+
+    if (!enable) {
+      lanesData[key].items = [];
+      return;
+    }
+
+    lanesData[key].items = buildOldVersionMenu(targetDist, poolLen, basePaceSec, gear);
+  });
+
+  recalculateAll();
+}
+
+function buildOldVersionMenu(targetDist, poolLen, basePaceSec, gear) {
+  let items = [];
+  const adjustDist = (d) => (poolLen === 50 && d % 50 !== 0) ? Math.ceil(d / 50) * 50 : d;
+
+  const wuDist = adjustDist(targetDist >= 4000 ? 400 : 300);
+  items.push({ phase: 'Warm up', style: 'Choice', desc: 'ゆっくりフォーム確認', dist: wuDist, reps: 1, circleSec: Math.round((wuDist / 100) * basePaceSec * 1.25) });
+
+  const drillDist = adjustDist(50);
+  items.push({ phase: 'Drill', style: 'Form Drill', desc: 'キャッチ・呼吸動作確認', dist: drillDist, reps: 4, circleSec: Math.round((drillDist / 100) * basePaceSec * 1.4) });
+
+  let kickStyle = 'Kick (Choice)';
+  if (gear.board) kickStyle = 'Kick W/Board';
+  else if (gear.fin) kickStyle = 'Kick W/Fin';
+  const kickDist = adjustDist(50);
+  const kickReps = targetDist >= 4000 ? 6 : 4;
+  items.push({ phase: 'Kick', style: kickStyle, desc: '軸を安定させてキック', dist: kickDist, reps: kickReps, circleSec: Math.round((kickDist / 100) * basePaceSec * 1.35) });
+
+  let pullStyle = 'Pull (Choice)';
+  if (gear.buoy && gear.paddle) pullStyle = 'Pull W/Buoy&Paddle';
+  else if (gear.buoy) pullStyle = 'Pull W/Buoy';
+  const pullDist = adjustDist(100);
+  items.push({ phase: 'Pull', style: pullStyle, desc: 'ハイキャッチを意識', dist: pullDist, reps: 4, circleSec: Math.round((pullDist / 100) * basePaceSec * 1.2) });
+
+  const downDist = adjustDist(200);
+  const fixedSum = wuDist + (drillDist * 4) + (kickDist * kickReps) + (pullDist * 4) + downDist;
+  let remDist = Math.max(300, targetDist - fixedSum);
+
+  let mainDist = adjustDist(targetDist >= 5000 ? 200 : 100);
+  let mainReps = Math.max(2, Math.round(remDist / mainDist));
+  items.push({ phase: 'Main', style: 'Fr Pace', desc: '目標ペースを堅持', dist: mainDist, reps: mainReps, circleSec: Math.round((mainDist / 100) * basePaceSec * 1.1) });
+
+  items.push({ phase: 'Down', style: 'Easy Choice', desc: 'クールダウン', dist: downDist, reps: 1, circleSec: Math.round((downDist / 100) * basePaceSec * 1.4) });
+
+  return items;
+}
+
+function recalculateAll() {
+  const startTimeStr = document.getElementById('start-time').value || "16:30";
+  const [startH, startM] = startTimeStr.split(':').map(Number);
+  const startSecBase = (startH * 3600) + (startM * 60);
+
+  ['A', 'B', 'C'].forEach(key => {
+    const lane = lanesData[key];
+    if (!lane.enabled) return;
+
+    let currentSec = startSecBase;
+    let totalD = 0;
+
+    lane.items.forEach((item) => {
+      item.startTimeStr = formatClockTime(currentSec);
+      totalD += (item.dist * item.reps);
+      currentSec += (item.circleSec * item.reps);
+      item.endTimeStr = formatClockTime(currentSec);
+    });
+
+    lane.totalDist = totalD;
+    lane.totalTimeSec = currentSec - startSecBase;
+  });
+
+  renderBoard();
+}
+
+function deleteItem(laneKey, idx) {
+  lanesData[laneKey].items.splice(idx, 1);
+  recalculateAll();
+}
+
+function updateItemVal(laneKey, idx, field, val) {
+  if (field === 'style' || field === 'desc' || field === 'phase') {
+    lanesData[laneKey].items[idx][field] = val;
+  } else if (field === 'circleSecStr') {
+    lanesData[laneKey].items[idx].circleSec = parsePaceToSec(val);
+  } else {
+    lanesData[laneKey].items[idx][field] = parseInt(val) || 0;
+  }
+  recalculateAll();
+}
+
+/* ====================================================================
+   メニューライブラリ機能
+   - サークル自動計算エンジン (動作+強度+道具+種目の加算式・二重加算防止)
+   - データ構造定義 / サンプルライブラリ / ユーザー登録ライブラリ(localStorage)
+   - タグフィルターUI(強度/動作/道具/種目) と検索
+   - SWIM SHEET・メインロジック(lanesData)との連携基盤
+==================================================================== */
+
+// ---- 属性の選択肢定義 (検索UI・登録フォームのプルダウン/チップ生成にも使用) ----
+const PHASE_OPTIONS = ['warmup', 'kick', 'pull', 'drill', 'swim', 'fw', 'hard', 'easy', 'down'];
+const INTENSITY_OPTIONS = ['A1', 'EN1', 'EN2', 'EN3', 'AN1', 'AN2'];
+const DRILL_TYPE_OPTIONS = ['typeA', 'typeB', 'typeC'];
+const STYLE_OPTIONS = ['Fr', 'Fly', 'Ba', 'Br', 'IM', 'Choice', 'S1'];
+const GEAR_OPTIONS = ['none', 'board', 'buoy', 'paddle', 'fin', 'snorkel', 'power_fin', 'resistance'];
+
+const PHASE_LABELS = { warmup: 'Warm Up', kick: 'Kick', pull: 'Pull', drill: 'Drill', swim: 'Swim', fw: 'Fw(自由)', hard: 'Hard', easy: 'Easy', down: 'Down' };
+const INTENSITY_LABELS = { A1: 'A1', EN1: 'EN1', EN2: 'EN2', EN3: 'EN3', AN1: 'AN1', AN2: 'AN2' };
+const DRILL_TYPE_LABELS = { typeA: 'Type A (スピード)', typeB: 'Type B (標準)', typeC: 'Type C (高抵抗/スロー)' };
+const GEAR_LABELS = { none: 'なし', board: 'ビート板', buoy: 'プルブイ', paddle: 'パドル', fin: 'フィン', snorkel: 'スノーケル', power_fin: 'パワーフィン', resistance: '抵抗(タオル/パラシュート)' };
+
+/* --------------------------------------------------------------------
+   ① サークル自動計算エンジン
+   最終100mサークル = 100mBasePace + 動作補正 + 強度補正 + 道具差分補正(合算) + 種目微調整
+   → 一度だけ加算し(二重加算防止)、最後に5秒単位で切り上げる。
+-------------------------------------------------------------------- */
+
+// ①動作補正(Phase)。drillはdrillType別テーブル(DRILL_CORRECTION)で判定するためここには含めない
+const PHASE_CORRECTION = { warmup: 30, down: 30, kick: 20, pull: 5, swim: 0, fw: 15, easy: 35, hard: 0 };
+const DRILL_CORRECTION = { typeA: 10, typeB: 25, typeC: 40 };
+
+// ②強度補正(Intensity)
+const INTENSITY_CORRECTION = { A1: 30, EN1: 15, EN2: 10, EN3: 5, AN1: 25, AN2: 45 };
+
+// ③道具差分補正(Gears) - 動作に対する純差分のみ。複数選択時は合算する
+const GEAR_CORRECTION = { none: 0, board: 5, buoy: 0, paddle: -5, fin: -25, snorkel: 0, power_fin: -15, resistance: 20 };
+
+// ④種目微調整(Style)
+const STYLE_CORRECTION = { Fr: 0, Choice: 0, S1: 0, Fly: 5, Ba: 5, Br: 10, IM: 5 };
+
+const CIRCLE_ROUND_UNIT = 5; // ⑤端数処理: 5秒単位に切り上げ(現場の時計の見やすさを優先)
+
+function roundUpToUnit(sec, unit) {
+  const u = unit || CIRCLE_ROUND_UNIT;
+  return Math.ceil(sec / u) * u;
+}
+
+function getPhaseCorrection(phase, drillType) {
+  if (phase === 'drill') {
+    return DRILL_CORRECTION[drillType] != null ? DRILL_CORRECTION[drillType] : DRILL_CORRECTION.typeB;
+  }
+  return PHASE_CORRECTION[phase] != null ? PHASE_CORRECTION[phase] : 0;
+}
+
+function getGearsCorrection(gears) {
+  if (!gears || !gears.length) return 0;
+  return gears.reduce((sum, g) => sum + (GEAR_CORRECTION[g] != null ? GEAR_CORRECTION[g] : 0), 0);
+}
+
+/**
+ * 100mベースタイムから「100mあたりの最終サークル秒数」を算出する。
+ * 各補正はこの関数内で1回だけ加算される(=二重加算防止の要)。
+ */
+function calculateCircleSec(basePaceSec, phase, intensity, gears, style, drillType) {
+  const phaseCorr = getPhaseCorrection(phase, drillType);
+  const intensityCorr = INTENSITY_CORRECTION[intensity] != null ? INTENSITY_CORRECTION[intensity] : 0;
+  const gearsCorr = getGearsCorrection(gears);
+  const styleCorr = STYLE_CORRECTION[style] != null ? STYLE_CORRECTION[style] : 0;
+
+  const raw100 = basePaceSec + phaseCorr + intensityCorr + gearsCorr + styleCorr;
+  // 道具補正等でベースタイムを下回らないよう安全下限を設定(基準ペースより速いサークルは現場運用上想定しない)
+  const safe100 = Math.max(basePaceSec, raw100);
+  return roundUpToUnit(safe100, CIRCLE_ROUND_UNIT);
+}
+
+// 実際の距離(dist)に応じたサークル秒数(100m単価 × dist/100を算出し、最後に再度5秒単位で切り上げ)
+function calculateCircleSecForDist(basePaceSec, dist, phase, intensity, gears, style, drillType) {
+  const per100 = calculateCircleSec(basePaceSec, phase, intensity, gears, style, drillType);
+  return roundUpToUnit(per100 * (dist / 100), CIRCLE_ROUND_UNIT);
+}
+
+/* --------------------------------------------------------------------
+   ② ライブラリのデータ構造 / シード & カスタムデータ
+-------------------------------------------------------------------- */
+function makeLibraryItem(overrides) {
+  return Object.assign({
+    id: '',
+    name: '',
+    phase: 'swim',
+    intensity: 'EN1',
+    drillType: null,
+    style: 'Fr',
+    gears: ['none'],
+    dist: 100,
+    reps: 1,
+    isComplexSet: false,
+    setReps: 1,
+    setRestSec: 0,
+    subItems: [],
+    repsRule: { type: 'any', value: 0, min: 1, max: 20 },
+    incompatibleGears: [],
+    incompatibleProps: [],
+    coachingTip: ''
+  }, overrides);
+}
+
+// ---- サンプルライブラリ(組み込み。ユーザー登録分と区別して保持) ----
+const MENU_LIBRARY = [
+  makeLibraryItem({
+    id: 'lib_wu_choice_400', name: 'ウォームアップ Choice 400', phase: 'warmup', intensity: 'A1',
+    style: 'Choice', gears: ['none'], dist: 400, reps: 1,
+    repsRule: { type: 'exact', value: 1, min: 1, max: 1 },
+    coachingTip: '各自のペースで身体を目覚めさせる。呼吸を整える。'
+  }),
+  makeLibraryItem({
+    id: 'lib_drill_catchup', name: 'キャッチアップドリル', phase: 'drill', intensity: 'A1', drillType: 'typeB',
+    style: 'Fr', gears: ['none'], dist: 25, reps: 8,
+    repsRule: { type: 'any', value: 0, min: 4, max: 12 },
+    coachingTip: 'エントリー位置とキャッチのタイミングを丁寧に確認。'
+  }),
+  makeLibraryItem({
+    id: 'lib_kick_board', name: 'キック(ビート板)', phase: 'kick', intensity: 'EN1',
+    style: 'Fr', gears: ['board'], dist: 50, reps: 8,
+    repsRule: { type: 'multiple_of', value: 2, min: 4, max: 16 },
+    coachingTip: '軸を安定させ、大きく力強いキックを打つ。'
+  }),
+  makeLibraryItem({
+    id: 'lib_pull_buoy_paddle', name: 'プル(ブイ+パドル)', phase: 'pull', intensity: 'EN2',
+    style: 'Fr', gears: ['buoy', 'paddle'], dist: 100, reps: 4,
+    repsRule: { type: 'any', value: 0, min: 2, max: 10 },
+    coachingTip: 'ハイキャッチを意識し、フィニッシュまで加速。'
+  }),
+  makeLibraryItem({
+    id: 'lib_swim_en2_200', name: 'Swim持久 200×4', phase: 'swim', intensity: 'EN2',
+    style: 'Fr', gears: ['none'], dist: 200, reps: 4,
+    repsRule: { type: 'multiple_of', value: 2, min: 2, max: 12 },
+    coachingTip: 'イーブンペースを維持し、後半のタレを防ぐ。'
+  }),
+  makeLibraryItem({
+    id: 'lib_swim_im_switch', name: 'IM Switch 100', phase: 'swim', intensity: 'EN2',
+    style: 'IM', gears: ['none'], dist: 100, reps: 8,
+    repsRule: { type: 'multiple_of', value: 4, min: 4, max: 16 },
+    incompatibleProps: ['Hypoxic'],
+    coachingTip: '4本ごとに種目を交代。切り替えのターンをスムーズに。'
+  }),
+  makeLibraryItem({
+    id: 'lib_hard_an2_50', name: 'ハイスプリント 50', phase: 'hard', intensity: 'AN2',
+    style: 'Fr', gears: ['none'], dist: 50, reps: 8,
+    repsRule: { type: 'any', value: 0, min: 4, max: 8 },
+    coachingTip: 'オールアウト。ピッチの上限を高め、呼吸数を制御。'
+  }),
+  makeLibraryItem({
+    id: 'lib_easy_choice_50', name: 'イージー Choice 50', phase: 'easy', intensity: 'A1',
+    style: 'Choice', gears: ['none'], dist: 50, reps: 4,
+    coachingTip: '心拍を落ち着かせながらフォームを崩さない。'
+  }),
+  makeLibraryItem({
+    id: 'lib_down_200', name: 'ダウン 200', phase: 'down', intensity: 'A1',
+    style: 'Choice', gears: ['none'], dist: 200, reps: 1,
+    repsRule: { type: 'exact', value: 1, min: 1, max: 1 },
+    coachingTip: '疲労物質を除去。ストローク長を大きく取りリラックス。'
+  }),
+  makeLibraryItem({
+    id: 'lib_drill_br_noequip', name: '平泳ぎドリル(道具無し)', phase: 'drill', intensity: 'A1', drillType: 'typeC',
+    style: 'Br', gears: ['none'], dist: 50, reps: 6,
+    incompatibleGears: ['paddle', 'fin'],
+    coachingTip: '平泳ぎは関節保護のためパドル・フィンは併用しない。'
+  }),
+  makeLibraryItem({
+    id: 'lib_swim_fly_an1', name: 'バタフライ AN1 25', phase: 'swim', intensity: 'AN1',
+    style: 'Fly', gears: ['none'], dist: 25, reps: 6,
+    incompatibleProps: ['Hypoxic'],
+    coachingTip: 'バタフライは低酸素トレーニングを併用しない(安全確保)。'
+  }),
+  makeLibraryItem({
+    id: 'lib_fw_choice_100', name: 'Fw(自由選択) 100', phase: 'fw', intensity: 'EN1',
+    style: 'Choice', gears: ['none'], dist: 100, reps: 4,
+    coachingTip: '得意な種目でリズムを作る。'
+  }),
+  makeLibraryItem({
+    id: 'lib_complex_sprint_set', name: 'コンプレックス: スプリント25×4 ×3セット', phase: 'swim', intensity: 'AN1',
+    style: 'Fr', gears: ['none'], dist: 25, reps: 4,
+    isComplexSet: true, setReps: 3, setRestSec: 30,
+    subItems: [
+      { dist: 25, reps: 4, style: 'Fr', note: '1-4本目 Descending(尻上がり)' }
+    ],
+    coachingTip: 'セット間30秒レストで完全回復。本数ごとに加速していく。'
+  })
+];
+
+// ---- ユーザー登録ライブラリ(localStorage連動) ----
+const CUSTOM_LIBRARY_KEY = 'aquaplan_v4_library_custom';
+let customLibraryItems = [];
+
+function loadCustomLibrary() {
+  try {
+    const saved = localStorage.getItem(CUSTOM_LIBRARY_KEY);
+    customLibraryItems = saved ? JSON.parse(saved) : [];
+  } catch (e) {
+    customLibraryItems = [];
+  }
+}
+
+function saveCustomLibrary() {
+  localStorage.setItem(CUSTOM_LIBRARY_KEY, JSON.stringify(customLibraryItems));
+}
+
+function getFullLibrary() {
+  return MENU_LIBRARY.concat(customLibraryItems);
+}
+
+// ---- 本数ルール(repsRule)の適用: 自動生成・現場整合性の制約を反映 ----
+function normalizeReps(reps, rule) {
+  if (!rule) return reps;
+  let r = reps;
+  if (rule.type === 'exact' && rule.value) {
+    r = rule.value;
+  } else if (rule.type === 'multiple_of' && rule.value) {
+    r = Math.max(rule.value, Math.round(r / rule.value) * rule.value);
+  }
+  if (typeof rule.min === 'number') r = Math.max(rule.min, r);
+  if (typeof rule.max === 'number' && rule.max > 0) r = Math.min(rule.max, r);
+  return r;
+}
+
+// ---- 併用不可(道具/属性)の整合性チェック。検索結果カードに警告表示するための判定 ----
+function getIncompatibilityWarnings(item) {
+  const warnings = [];
+  if (item.gears && item.incompatibleGears && item.incompatibleGears.length) {
+    const hit = item.gears.filter(g => item.incompatibleGears.includes(g));
+    if (hit.length) {
+      warnings.push(`併用不可の道具: ${hit.map(g => GEAR_LABELS[g] || g).join('・')}`);
+    }
+  }
+  if (item.incompatibleProps && item.incompatibleProps.length) {
+    warnings.push(`併用不可の属性: ${item.incompatibleProps.join('・')}`);
+  }
+  return warnings;
+}
+
+/* --------------------------------------------------------------------
+   ③ タグフィルターUI(強度/動作/道具/種目) と検索
+-------------------------------------------------------------------- */
+const libraryFilterState = { phase: '', intensity: '', style: '', gear: '' };
+
+function searchLibrary(query) {
+  const text = (query.text || '').trim().toLowerCase();
+  return getFullLibrary().filter(item => {
+    if (text && !item.name.toLowerCase().includes(text)) return false;
+    if (query.phase && item.phase !== query.phase) return false;
+    if (query.intensity && item.intensity !== query.intensity) return false;
+    if (query.style && item.style !== query.style) return false;
+    if (query.gear && !(item.gears || []).includes(query.gear)) return false;
+    return true;
+  });
+}
+
+function renderFilterChipGroup(containerId, options, labels, stateKey) {
+  const box = document.getElementById(containerId);
+  let html = `<button type="button" onclick="setLibraryFilter('${stateKey}','')" class="lib-chip ${libraryFilterState[stateKey] === '' ? 'lib-chip-active' : ''}">すべて</button>`;
+  options.forEach(v => {
+    const active = libraryFilterState[stateKey] === v;
+    const label = (labels && labels[v]) ? labels[v] : v;
+    html += `<button type="button" onclick="setLibraryFilter('${stateKey}','${v}')" class="lib-chip ${active ? 'lib-chip-active' : ''}">${label}</button>`;
+  });
+  box.innerHTML = html;
+}
+
+function renderAllFilterChips() {
+  renderFilterChipGroup('lib-chips-intensity', INTENSITY_OPTIONS, INTENSITY_LABELS, 'intensity');
+  renderFilterChipGroup('lib-chips-phase', PHASE_OPTIONS, PHASE_LABELS, 'phase');
+  renderFilterChipGroup('lib-chips-gear', GEAR_OPTIONS, GEAR_LABELS, 'gear');
+  renderFilterChipGroup('lib-chips-style', STYLE_OPTIONS, null, 'style');
+}
+
+function setLibraryFilter(key, val) {
+  libraryFilterState[key] = val;
+  renderAllFilterChips();
+  renderLibraryResults();
+}
+
+let libraryFiltersInitialized = false;
+function initLibraryFiltersOnce() {
+  if (libraryFiltersInitialized) return;
+  libraryFiltersInitialized = true;
+  renderAllFilterChips();
+}
+
+function switchLibraryTab(tab) {
+  const isSearch = tab === 'search';
+  document.getElementById('lib-tab-search').classList.toggle('hidden', !isSearch);
+  document.getElementById('lib-tab-create').classList.toggle('hidden', isSearch);
+  document.getElementById('lib-tab-btn-search').classList.toggle('lib-tab-active', isSearch);
+  document.getElementById('lib-tab-btn-create').classList.toggle('lib-tab-active', !isSearch);
+}
+
+function openLibraryModal(laneKey) {
+  initLibraryFiltersOnce();
+  initNewLibraryFormOnce();
+  if (laneKey) document.getElementById('lib-target-lane').value = laneKey;
+  document.getElementById('library-modal').classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+  switchLibraryTab('search');
+  renderLibraryResults();
+  lucide.createIcons();
+}
+
+function closeLibraryModal() {
+  document.getElementById('library-modal').classList.add('hidden');
+  document.body.style.overflow = '';
+}
+
+function renderLibraryResults() {
+  const query = {
+    text: document.getElementById('lib-search-text').value,
+    phase: libraryFilterState.phase,
+    intensity: libraryFilterState.intensity,
+    style: libraryFilterState.style,
+    gear: libraryFilterState.gear
+  };
+  const results = searchLibrary(query);
+  document.getElementById('library-result-count').innerText = `${results.length} 件ヒット / 全 ${getFullLibrary().length} 件`;
+
+  const box = document.getElementById('library-results');
+  if (results.length === 0) {
+    box.innerHTML = `<p class="text-center text-slate-500 text-sm py-10">該当するメニューが見つかりません。条件を変更してください。</p>`;
+    return;
+  }
+  box.innerHTML = results.map(item => renderLibraryCard(item)).join('');
+  lucide.createIcons();
+}
+
+function renderLibraryCard(item) {
+  const warnings = getIncompatibilityWarnings(item);
+  const distSummary = item.isComplexSet
+    ? `Complex Set ×${item.setReps} (${item.subItems.map(si => `${si.dist}m×${si.reps}`).join(' + ')}${item.setRestSec ? ` / セット間Rest ${item.setRestSec}秒` : ''})`
+    : `${item.dist}m × ${item.reps}本`;
+  const gearsText = (item.gears && item.gears.length) ? item.gears.map(g => GEAR_LABELS[g] || g).join('・') : 'なし';
+
+  return `
+    <div class="p-3 rounded-xl bg-slate-950/80 border border-slate-800 hover:border-cyan-600/60 transition-colors">
+      <div class="flex items-start justify-between gap-3">
+        <div class="min-w-0">
+          <div class="flex items-center gap-1.5 flex-wrap mb-1">
+            <span class="text-sm font-bold text-white">${item.name}</span>
+            <span class="text-[10px] px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 font-mono-code">${PHASE_LABELS[item.phase] || item.phase}</span>
+            <span class="text-[10px] px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-mono-code">${item.intensity}</span>
+            <span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700 font-mono-code">${item.style}</span>
+            ${item.drillType ? `<span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 font-mono-code">${DRILL_TYPE_LABELS[item.drillType]}</span>` : ''}
+            ${item.isComplexSet ? `<span class="text-[10px] px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30 font-mono-code">Complex Set</span>` : ''}
+            ${item.id && item.id.indexOf('custom_') === 0 ? `<span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-mono-code">My登録</span>` : ''}
+          </div>
+          <div class="text-xs text-slate-400 font-mono-code">${distSummary}　|　道具: ${gearsText}</div>
+          ${item.coachingTip ? `<div class="text-[11px] text-slate-500 mt-1 leading-snug">${item.coachingTip}</div>` : ''}
+          ${warnings.length ? `<div class="text-[10px] text-rose-400 mt-1 font-bold">⚠ ${warnings.join(' / ')}</div>` : ''}
+        </div>
+        <button onclick="addLibraryItemToLane('${item.id}')" class="shrink-0 px-3 py-1.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs font-black flex items-center gap-1">
+          <i data-lucide="plus" class="w-3.5 h-3.5"></i> 追加
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+/* --------------------------------------------------------------------
+   ④ 連携基盤: ライブラリ形式 → lanesData(SWIM SHEET/メインロジック)形式への変換
+   ここでサークル自動計算エンジンを一度だけ適用する(二重加算防止)。
+-------------------------------------------------------------------- */
+function libraryItemToLaneItems(item, basePaceSec) {
+  if (item.isComplexSet && Array.isArray(item.subItems) && item.subItems.length) {
+    const expanded = [];
+    const totalSets = Math.max(1, item.setReps || 1);
+    for (let s = 0; s < totalSets; s++) {
+      item.subItems.forEach(sub => {
+        const subStyle = sub.style || item.style;
+        const circle = calculateCircleSecForDist(basePaceSec, sub.dist, item.phase, item.intensity, item.gears, subStyle, item.drillType);
+        expanded.push({
+          phase: `${PHASE_LABELS[item.phase] || item.phase}${totalSets > 1 ? ` Set${s + 1}/${totalSets}` : ''}`,
+          style: subStyle,
+          desc: [sub.note, item.coachingTip].filter(Boolean).join('　'),
+          dist: sub.dist,
+          reps: sub.reps,
+          circleSec: circle
+        });
+      });
+      // セット間レストは、そのセット最後のステップのサークルタイムに加算して簡易反映
+      if (item.setRestSec && s < totalSets - 1 && expanded.length) {
+        const last = expanded[expanded.length - 1];
+        last.circleSec += Math.round(item.setRestSec / Math.max(1, last.reps));
+      }
+    }
+    return expanded;
+  }
+
+  const reps = normalizeReps(item.reps, item.repsRule);
+  const circle = calculateCircleSecForDist(basePaceSec, item.dist, item.phase, item.intensity, item.gears, item.style, item.drillType);
+  return [{
+    phase: PHASE_LABELS[item.phase] || item.phase,
+    style: item.style,
+    desc: item.coachingTip || '',
+    dist: item.dist,
+    reps: reps,
+    circleSec: circle
+  }];
+}
+
+function addLibraryItemToLane(itemId) {
+  const item = getFullLibrary().find(i => i.id === itemId);
+  if (!item) return;
+
+  const laneKey = document.getElementById('lib-target-lane').value;
+  const lane = lanesData[laneKey];
+  if (!lane || !lane.enabled) {
+    alert(`Lane ${laneKey} は現在無効です。サイドバーで有効化してから追加してください。`);
+    return;
+  }
+
+  const newItems = libraryItemToLaneItems(item, lane.basePaceSec);
+  lane.items.push(...newItems);
+  recalculateAll();
+  showLibraryToast(`「${item.name}」を Lane ${laneKey} に追加しました。`);
+}
+
+function showLibraryToast(msg) {
+  let toast = document.getElementById('library-toast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'library-toast';
+    toast.className = 'fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] px-4 py-2.5 rounded-xl bg-cyan-500 text-slate-950 font-bold text-xs shadow-[0_0_20px_rgba(6,182,212,0.5)] transition-opacity duration-300';
+    document.body.appendChild(toast);
+  }
+  toast.innerText = msg;
+  toast.style.opacity = '1';
+  clearTimeout(toast._toastTimer);
+  toast._toastTimer = setTimeout(() => { toast.style.opacity = '0'; }, 2200);
+}
+
+/* --------------------------------------------------------------------
+   ⑤ 新規メニュー登録フォーム (localStorage連動でライブラリに保存)
+-------------------------------------------------------------------- */
+function fillSelectPlain(id, options, labels) {
+  const sel = document.getElementById(id);
+  sel.innerHTML = options.map(v => `<option value="${v}">${(labels && labels[v]) ? labels[v] : v}</option>`).join('');
+}
+
+function fillCheckboxGroup(containerId, options, labels, className) {
+  const box = document.getElementById(containerId);
+  box.innerHTML = options.map(v => `
+    <label class="flex items-center gap-1 px-2 py-1 rounded-lg bg-slate-950 border border-slate-800 text-[10px] font-bold text-slate-300 cursor-pointer">
+      <input type="checkbox" value="${v}" class="${className} rounded border-slate-700 bg-slate-900 text-cyan-500"> ${(labels && labels[v]) ? labels[v] : v}
+    </label>
+  `).join('');
+}
+
+function togglePhaseDependentFields() {
+  const phase = document.getElementById('nf-phase').value;
+  document.getElementById('nf-drilltype-wrap').classList.toggle('hidden', phase !== 'drill');
+}
+
+function toggleComplexSetFields() {
+  const on = document.getElementById('nf-isComplexSet').checked;
+  document.getElementById('nf-complexset-fields').classList.toggle('hidden', !on);
+}
+
+function updateNewFormCirclePreview() {
+  const phase = document.getElementById('nf-phase').value;
+  const drillType = document.getElementById('nf-drilltype').value;
+  const intensity = document.getElementById('nf-intensity').value;
+  const style = document.getElementById('nf-style').value;
+  const gears = Array.from(document.querySelectorAll('.nf-gear-check:checked')).map(el => el.value);
+  const dist = parseInt(document.getElementById('nf-dist').value) || 100;
+  const PREVIEW_BASE_PACE = 80; // プレビュー専用の基準タイム(1'20)。実際の値は挿入先レーンの基準タイムで再計算される
+  const circle = calculateCircleSecForDist(PREVIEW_BASE_PACE, dist, phase, intensity, gears.length ? gears : ['none'], style, drillType);
+  document.getElementById('nf-circle-preview').innerText = `サークル目安: ${formatSeconds(circle)} (基準 1'20 換算・${dist}m時 / レーン追加時は各レーンの基準タイムで自動再計算)`;
+}
+
+let newFormInitialized = false;
+function initNewLibraryFormOnce() {
+  if (newFormInitialized) return;
+  newFormInitialized = true;
+  fillSelectPlain('nf-phase', PHASE_OPTIONS, PHASE_LABELS);
+  fillSelectPlain('nf-drilltype', DRILL_TYPE_OPTIONS, DRILL_TYPE_LABELS);
+  fillSelectPlain('nf-intensity', INTENSITY_OPTIONS, INTENSITY_LABELS);
+  fillSelectPlain('nf-style', STYLE_OPTIONS, null);
+  fillCheckboxGroup('nf-gear-checks', GEAR_OPTIONS, GEAR_LABELS, 'nf-gear-check');
+  fillCheckboxGroup('nf-incompatgear-checks', GEAR_OPTIONS, GEAR_LABELS, 'nf-incompatgear-check');
+  document.getElementById('nf-gear-checks').addEventListener('change', updateNewFormCirclePreview);
+  togglePhaseDependentFields();
+  toggleComplexSetFields();
+  updateNewFormCirclePreview();
+}
+
+function resetNewLibraryForm() {
+  document.getElementById('new-library-form').reset();
+  togglePhaseDependentFields();
+  toggleComplexSetFields();
+  updateNewFormCirclePreview();
+}
+
+function submitNewLibraryItem(e) {
+  e.preventDefault();
+  const name = document.getElementById('nf-name').value.trim();
+  const dist = parseInt(document.getElementById('nf-dist').value) || 0;
+  const reps = parseInt(document.getElementById('nf-reps').value) || 0;
+  if (!name) { alert('メニュー名を入力してください。'); return; }
+  if (dist <= 0 || reps <= 0) { alert('距離・本数は1以上を入力してください。'); return; }
+
+  const gears = Array.from(document.querySelectorAll('.nf-gear-check:checked')).map(el => el.value);
+  const incompatibleGears = Array.from(document.querySelectorAll('.nf-incompatgear-check:checked')).map(el => el.value);
+  const incompatibleProps = document.getElementById('nf-incompatprops').value.split(',').map(s => s.trim()).filter(Boolean);
+
+  const isComplexSet = document.getElementById('nf-isComplexSet').checked;
+  const setReps = parseInt(document.getElementById('nf-setreps').value) || 1;
+  const setRestSec = parseInt(document.getElementById('nf-setrest').value) || 0;
+  const subDist = parseInt(document.getElementById('nf-sub-dist').value) || dist;
+  const subReps = parseInt(document.getElementById('nf-sub-reps').value) || reps;
+  const subStyle = document.getElementById('nf-sub-style').value.trim() || document.getElementById('nf-style').value;
+  const subNote = document.getElementById('nf-sub-note').value.trim();
+
+  const repsRuleType = document.getElementById('nf-repsrule-type').value;
+  const repsRuleValue = parseInt(document.getElementById('nf-repsrule-value').value) || 0;
+  const repsRuleMin = parseInt(document.getElementById('nf-repsrule-min').value) || 1;
+  const repsRuleMax = parseInt(document.getElementById('nf-repsrule-max').value) || 20;
+
+  const phase = document.getElementById('nf-phase').value;
+
+  const newItem = makeLibraryItem({
+    id: `custom_${Date.now()}`,
+    name: name,
+    phase: phase,
+    intensity: document.getElementById('nf-intensity').value,
+    drillType: phase === 'drill' ? document.getElementById('nf-drilltype').value : null,
+    style: document.getElementById('nf-style').value,
+    gears: gears.length ? gears : ['none'],
+    dist: dist,
+    reps: reps,
+    isComplexSet: isComplexSet,
+    setReps: isComplexSet ? Math.max(1, setReps) : 1,
+    setRestSec: isComplexSet ? Math.max(0, setRestSec) : 0,
+    subItems: isComplexSet ? [{ dist: subDist, reps: subReps, style: subStyle, note: subNote }] : [],
+    repsRule: { type: repsRuleType, value: repsRuleValue, min: repsRuleMin, max: repsRuleMax },
+    incompatibleGears: incompatibleGears,
+    incompatibleProps: incompatibleProps,
+    coachingTip: document.getElementById('nf-coachingtip').value.trim()
+  });
+
+  customLibraryItems.push(newItem);
+  saveCustomLibrary();
+  resetNewLibraryForm();
+  switchLibraryTab('search');
+  renderLibraryResults();
+  showLibraryToast(`「${newItem.name}」をライブラリに保存しました。`);
+}
+
+function renderBoard() {
+  const container = document.getElementById('lanes-board');
+  container.innerHTML = '';
+  const colors = { A: 'cyan', B: 'blue', C: 'indigo' };
+
+  ['A', 'B', 'C'].forEach(key => {
+    const lane = lanesData[key];
+    if (!lane.enabled) return;
+
+    const c = colors[key];
+    const totalMin = Math.round(lane.totalTimeSec / 60);
+
+    let html = `
+      <div class="rounded-2xl bg-slate-900/80 border border-${c}-500/30 neon-border-${c} backdrop-blur-md flex flex-col h-full overflow-hidden">
+        <div class="p-4 border-b border-slate-800 bg-slate-950/60 flex items-center justify-between">
+          <div>
+            <span class="text-xs font-cyber text-${c}-400 font-bold tracking-wider">${lane.name}</span>
+            <div class="flex items-center gap-2 mt-0.5">
+              <span class="text-xs text-slate-400 font-mono-code">Total: <b class="text-white">${lane.totalDist}m</b></span>
+              <span class="text-xs text-slate-500">|</span>
+              <span class="text-xs text-slate-400 font-mono-code">Time: <b class="text-white">${totalMin} min</b></span>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="openLibraryModal('${key}')" title="ライブラリから追加" class="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-400 hover:text-cyan-400 transition-colors">
+              <i data-lucide="library" class="w-3.5 h-3.5"></i>
+            </button>
+            <div class="text-right">
+              <span class="text-[10px] text-slate-500 font-mono-code block">基準タイム</span>
+              <span class="text-sm font-black font-mono-code text-${c}-400">${formatSeconds(lane.basePaceSec)}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="p-3 space-y-2.5 flex-1 overflow-y-auto max-h-[calc(100vh-280px)]">
+    `;
+
+    lane.items.forEach((item, idx) => {
+      html += `
+        <div class="p-3 rounded-xl bg-slate-950/90 border border-slate-800/80 hover:border-slate-700 transition-all space-y-2">
+          <div class="flex items-center justify-between text-xs">
+            <div class="flex items-center gap-1.5 font-mono-code text-[11px] text-slate-400">
+              <span class="text-cyan-400 font-bold">${item.startTimeStr}</span>
+              <span>-</span>
+              <span>${item.endTimeStr}</span>
+            </div>
+            <button onclick="deleteItem('${key}', ${idx})" class="text-slate-600 hover:text-rose-400 transition-colors">
+              <i data-lucide="x" class="w-3.5 h-3.5"></i>
+            </button>
+          </div>
+
+          <div class="grid grid-cols-12 gap-2 items-center">
+            <div class="col-span-4">
+              <input type="text" value="${item.phase}" onchange="updateItemVal('${key}', ${idx}, 'phase', this.value)" class="text-[10px] font-bold text-slate-400 uppercase bg-transparent w-full">
+              <input type="text" value="${item.style}" onchange="updateItemVal('${key}', ${idx}, 'style', this.value)" class="w-full bg-transparent font-bold text-xs text-slate-200 focus:outline-none">
+            </div>
+
+            <div class="col-span-8 flex items-center justify-end gap-1 text-xs font-mono-code">
+              <input type="number" value="${item.dist}" step="25" onchange="updateItemVal('${key}', ${idx}, 'dist', this.value)" class="w-12 px-1 py-0.5 bg-slate-900 border border-slate-800 rounded text-center text-cyan-300 font-bold">
+              <span class="text-slate-500">m</span>
+              <span class="text-slate-600">×</span>
+              <input type="number" value="${item.reps}" step="1" onchange="updateItemVal('${key}', ${idx}, 'reps', this.value)" class="w-10 px-1 py-0.5 bg-slate-900 border border-slate-800 rounded text-center text-white font-bold">
+              <span class="text-slate-500">本</span>
+              <span class="text-slate-600">@</span>
+              <input type="text" value="${formatSeconds(item.circleSec)}" onchange="updateItemVal('${key}', ${idx}, 'circleSecStr', this.value)" class="w-14 px-1 py-0.5 bg-slate-900 border border-slate-800 rounded text-center text-amber-400 font-bold">
+            </div>
+          </div>
+        </div>
+      `;
+    });
+
+    html += `
+        </div>
+      </div>
+    `;
+
+    container.innerHTML += html;
+  });
+
+  lucide.createIcons();
+}
+
+/* --------------------------------------------------
+   送っていただいた旧バージョンの printMultiLayout() 関数を完全統合
+-------------------------------------------------- */
+function printMultiLayout() {
+  if (document.activeElement && document.activeElement.blur) {
+    document.activeElement.blur();
+  }
+
+  const container = document.getElementById('print-lanes-container');
+  container.innerHTML = '';
+
+  const todayStr = new Date().toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' });
+  document.getElementById('print-sheet-date').innerText = `作成日: ${todayStr}`;
+
+  ['A', 'B', 'C'].forEach(key => {
+    const menu = lanesData[key];
+    if (!menu.enabled) return;
+
+    let exactTotal = 0;
+    let exactTime = Math.round(menu.totalTimeSec / 60);
+    let trs = '';
+
+    menu.items.forEach(s => {
+      exactTotal += (s.dist * s.reps);
+      trs += `
+        <tr class="border-b border-gray-300 text-sm">
+          <td class="py-2 px-2.5 font-bold text-gray-900 border-r border-gray-300" style="width: 100px;">${s.phase}</td>
+          <td class="py-2 px-2.5 font-black text-gray-950 border-r border-gray-300" style="width: 160px;">${s.style}</td>
+          <td class="py-2 px-2.5 text-gray-800 leading-normal border-r border-gray-300">
+            <span class="font-mono text-xs font-bold text-gray-600 mr-2">[${s.startTimeStr}-${s.endTimeStr}]</span>${s.desc}
+          </td>
+          <td class="py-2 px-2.5 text-right font-bold text-gray-950 whitespace-nowrap border-r border-gray-300" style="width: 100px;">${s.dist}m × ${s.reps}</td>
+          <td class="py-2 px-2.5 text-right font-black text-blue-900 whitespace-nowrap" style="width: 100px;">${formatSeconds(s.circleSec)}</td>
+        </tr>
+      `;
+    });
+
+    const sec = document.createElement('div');
+    sec.className = "print-card bg-white text-black p-6 rounded-lg";
+    sec.innerHTML = `
+      <div class="flex justify-between items-end border-b-4 border-black pb-2 mb-4">
+        <div>
+          <h2 class="text-2xl font-black text-black tracking-tight">${menu.name}</h2>
+          <p class="text-xs text-gray-600 font-bold">基準100mベースタイム目安: ${formatSeconds(menu.basePaceSec)} | 目安時間: <span class="text-blue-800 font-extrabold">${exactTime}分</span></p>
+        </div>
+        <span class="text-3xl font-black text-black">${exactTotal}m</span>
+      </div>
+      <table class="w-full text-left border-collapse border-2 border-black mb-4">
+        <thead>
+          <tr class="bg-gray-100 text-xs font-bold border-b-2 border-black">
+            <th class="py-2 px-2.5 border-r border-gray-300 text-black">Phase</th>
+            <th class="py-2 px-2.5 border-r border-gray-300 text-black">Style</th>
+            <th class="py-2 px-2.5 border-r border-gray-300 text-black">Description</th>
+            <th class="py-2 px-2.5 text-right border-r border-gray-300 text-black">Reps</th>
+            <th class="py-2 px-2.5 text-right text-black">Cycle</th>
+          </tr>
+        </thead>
+        <tbody>${trs}</tbody>
+      </table>
+      <div class="text-xs border-t border-dashed border-gray-400 pt-3">
+        <span class="font-bold text-black uppercase"> 【コーチ指導指示】:</span>
+        <span class="text-gray-900 font-medium leading-relaxed">${menu.coachingTip || ''}</span>
+      </div>
+    `;
+
+    container.appendChild(sec);
+  });
+
+  window.print();
+}
+
+function saveData() {
+  const payload = {
+    lanesData: lanesData,
+    startTime: document.getElementById('start-time').value,
+    targetDist: document.getElementById('target-distance').value
+  };
+  localStorage.setItem('aquaplan_v4_config', JSON.stringify(payload));
+  alert('⚡ 設定とメニューデータを保存しました。');
+}
+
+function loadData() {
+  const saved = localStorage.getItem('aquaplan_v4_config');
+  if (!saved) return alert('保存データがありません。');
+  const payload = JSON.parse(saved);
+  lanesData = payload.lanesData;
+  if (payload.startTime) document.getElementById('start-time').value = payload.startTime;
+  if (payload.targetDist) {
+    document.getElementById('target-distance').value = payload.targetDist;
+    document.getElementById('target-dist-val').innerText = payload.targetDist + 'm';
+  }
+  recalculateAll();
+  alert('⚡ データを復元しました。');
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  loadCustomLibrary();
+  lucide.createIcons();
+});
+</script>
+</body>
+</html>
